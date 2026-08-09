@@ -7,14 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Domain\Domain.csproj" />
-    <ProjectReference Include="..\Services.Abstraction\Services.Abstraction.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Implementations\" />
     <Folder Include="Global\" />
     <Folder Include="MappingProfiles\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\LibraryManagement.Domain.csproj" />
+    <ProjectReference Include="..\Services.Abstraction\LibraryManagement.Services.Abstraction.csproj" />
   </ItemGroup>
 
 </Project>

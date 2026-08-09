@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\Services.Abstraction\Services.Abstraction.csproj" />
+    <Folder Include="Data\" />
+    <Folder Include="Global\" />
+    <Folder Include="Repositories\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\..\Core\Services\LibraryManagement.Services.csproj" />
   </ItemGroup>
 
 </Project>

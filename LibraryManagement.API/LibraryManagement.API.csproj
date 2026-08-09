@@ -12,12 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Infrastructure\Presentation\Presentation.csproj" />
-    <ProjectReference Include="..\Infrastructure\Presistence\Presistence.csproj" />
+    <ProjectReference Include="..\Infrastructure\Presentation\LibraryManagement.Presentation.csproj" />
+    <ProjectReference Include="..\Infrastructure\Presistence\LibraryManagement.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
