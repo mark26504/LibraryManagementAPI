@@ -12,6 +12,12 @@ namespace LibraryManagement.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Allow AutoMapper
+            builder.Services.AddAutoMapper(config => 
+            {
+                config.AddMaps(typeof(LibraryManagement.Services.AssemblyReference).Assembly);
+            });
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
