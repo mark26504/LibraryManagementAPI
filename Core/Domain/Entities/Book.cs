@@ -15,14 +15,15 @@
         public DateTime? UpdatedAt { get; set; }
         public byte[]? RowVersion { get; set; }
 
-        #region Category -> Books [1:M]
+        // Done
+        #region Category -> Books [1:M] 
 
         // Nav Prop
         public Category Category { get; set; } = null!;
 
         // FK
         public Guid CategoryId { get; set; }
-        #endregion
+        #endregion 
 
         #region Book (1)<->(M) BookAuthor (M)<->(1) Author
 

@@ -12,7 +12,7 @@
         #region ApplicationUser -> RefreshToken [1:M]
 
         // Nav Prop
-        public ApplicationUser User { get; set; } = null!;
+        public ApplicationUser ApplicationUser { get; set; } = null!;
 
         // Fk
         public string UserId { get; set; } = null!;
