@@ -4,5 +4,10 @@ global using LibraryManagement.Persistence.Identity;
 global using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
+global using LibraryManagement.Domain.Contracts;
+global using System.Linq.Expressions;
+global using LibraryManagement.Persistence.Data;
+global using LibraryManagement.Persistence.Repositories;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
 

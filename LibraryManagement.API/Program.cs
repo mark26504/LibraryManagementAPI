@@ -1,4 +1,8 @@
 
+using LibraryManagement.Persistence;
+using LibraryManagement.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace LibraryManagement.API
 {
     public class Program
@@ -11,6 +15,9 @@ namespace LibraryManagement.API
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Allow Presistence Service
+            builder.Services.AddPersistenceServices(builder.Configuration);
 
             // Allow AutoMapper
             builder.Services.AddAutoMapper(config => 
