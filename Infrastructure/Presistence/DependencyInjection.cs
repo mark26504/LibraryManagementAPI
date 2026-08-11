@@ -9,6 +9,9 @@
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
+            // Data Protection Configuration
+            services.AddDataProtection();
+
             // Identity Configuration
             services.AddIdentityCore<ApplicationUser>(options =>
             {
