@@ -1,0 +1,14 @@
+﻿global using LibraryManagement.Services.Abstraction.Contracts.Authentication;
+global using LibraryManagement.Shared.Dtos.Authentication;
+global using LibraryManagement.Services.Configurations;
+global using Microsoft.Extensions.Options;
+global using Microsoft.IdentityModel.Tokens;
+global using System.IdentityModel.Tokens.Jwt;
+global using System.Security.Claims;
+global using System.Security.Cryptography;
+global using System.Text;
+global using LibraryManagement.Services.Implementations.Authentication;
+global using Microsoft.Extensions.DependencyInjection;
+global using LibraryManagement.Shared.Models.Authentication;
+global using LibraryManagement.Shared.Responses;
+global using LibraryManagement.Services.Abstraction.Contracts.Identity;

@@ -10,4 +10,7 @@ global using LibraryManagement.Persistence.Data;
 global using LibraryManagement.Persistence.Repositories;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
-
+global using LibraryManagement.Services.Abstraction.Contracts.Authentication;
+global using LibraryManagement.Shared.Dtos.Authentication;
+global using LibraryManagement.Services.Configurations;
+global using LibraryManagement.Services;

@@ -1,4 +1,8 @@
-﻿namespace LibraryManagement.Persistence
+﻿using LibraryManagement.Persistence.Identity.Managers;
+using LibraryManagement.Persistence.Identity.Store;
+using LibraryManagement.Services.Abstraction.Contracts.Identity;
+
+namespace LibraryManagement.Persistence
 {
     public static class DependencyInjection
     {
@@ -24,10 +28,17 @@
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+            // JWT Options
+            services.Configure<JwtOptions>(
+                configuration.GetSection("Jwt"));
 
-            // Add UnitOfWork
+            //// Business Services
+            services.AddBusinessServices();
+
+            // Persistence Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-
+            services.AddScoped<IIdentityManager, IdentityManager>();
+            services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
             return services;
         }
     }
