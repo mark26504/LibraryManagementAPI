@@ -12,3 +12,8 @@ global using Microsoft.Extensions.DependencyInjection;
 global using LibraryManagement.Shared.Models.Authentication;
 global using LibraryManagement.Shared.Responses;
 global using LibraryManagement.Services.Abstraction.Contracts.Identity;
+global using AutoMapper;
+global using LibraryManagement.Shared.Dtos.Identity;
+global using LibraryManagement.Shared.Dtos.UserManagement;
+global using LibraryManagement.Services.Abstraction.Contracts.Users;
+global using LibraryManagement.Services.Implementations.UserManagement;

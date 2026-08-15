@@ -1,9 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Identity;
-using LibraryManagement.Shared.Dtos.Authentication;
-using LibraryManagement.Shared.Dtos.Identity;
-using LibraryManagement.Shared.Responses;
-
-namespace LibraryManagement.Persistence.Identity.Managers
+﻿namespace LibraryManagement.Persistence.Identity.Managers
 {
     internal sealed class IdentityManager : IIdentityManager
     {
@@ -13,6 +8,9 @@ namespace LibraryManagement.Persistence.Identity.Managers
         {
             _userManager = userManager;
         }
+
+        #region Authentication
+
         public async Task<Result> CreateUserAsync(UserRegistrationDto registrationDto, string role)
         {
             var user = new ApplicationUser
@@ -80,5 +78,137 @@ namespace LibraryManagement.Persistence.Identity.Managers
                 roles);
             return Result<IdentityUserInfo>.Success(identityUserInfo);
         }
+        #endregion
+
+        #region User Management
+
+        public async Task<Result<PagedResponse<IdentityUserInfo>>> GetUsersAsync(UserQueryParametersDto queryParameters)
+        {
+            if (queryParameters == null) 
+                return Result<PagedResponse<IdentityUserInfo>>.Failure(new Error("QueryParameters.Null", "Query parameters cannot be null."));
+            
+            var query = _userManager.Users.AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(queryParameters.Search))
+                query = query.Where(u => u.FirstName.Contains(queryParameters.Search) || u.LastName.Contains(queryParameters.Search));
+            
+            if (queryParameters.IsActive.HasValue)
+                query = query.Where(u => u.IsActive == queryParameters.IsActive.Value);
+
+            // Role Filtering
+            if (!string.IsNullOrEmpty(queryParameters.Role))
+            {
+                var userIdsInRole = (await _userManager.GetUsersInRoleAsync(queryParameters.Role))
+                    .Select(u => u.Id)
+                    .ToList();
+                query = query.Where(u => userIdsInRole.Contains(u.Id));
+            }
+
+            // Sorting
+            if (string.IsNullOrEmpty(queryParameters.SortBy))
+                query = query.OrderBy(u => u.CreatedAt);
+            if (!string.IsNullOrEmpty(queryParameters.SortBy))
+            { 
+                var sortBy = queryParameters.SortBy.ToLower();
+                var sortByDirection = queryParameters.SortDirection?.ToLower() ?? "asc";
+
+                query = sortBy switch
+                {
+                    "firstname" => sortByDirection == "desc" ? query.OrderByDescending(u => u.FirstName) : query.OrderBy(u => u.FirstName),
+                    "lastname" => sortByDirection == "desc" ? query.OrderByDescending(u => u.LastName) : query.OrderBy(u => u.LastName),
+                    "email" => sortByDirection == "desc" ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+                    _ => query.OrderBy(u => u.Id).ThenBy(u => u.Email)
+                };
+            }
+
+            // Pagination
+            var totalCount = await query.CountAsync();
+            query = query.Skip((queryParameters.PageNumber - 1) * queryParameters.PageSize)
+                         .Take(queryParameters.PageSize);
+            var users = await query.ToListAsync();
+            var identityUsers = new List<IdentityUserInfo>();
+            foreach (var user in users) {
+                var roles = await _userManager.GetRolesAsync(user);
+                var identityUserInfo = new IdentityUserInfo(
+                    user.Id,
+                    user.FirstName,
+                    user.LastName,
+                    user.Email!,
+                    user.IsActive,
+                    roles
+                );
+                identityUsers.Add(identityUserInfo);
+            }
+            var pagedResponse = new PagedResponse<IdentityUserInfo>(identityUsers, queryParameters.PageNumber, queryParameters.PageSize, totalCount);
+            return Result<PagedResponse<IdentityUserInfo>>.Success(pagedResponse);
+        }
+
+        public async Task<Result> UpdateUserProfileAsync(string userId, string firstName, string lastName)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(new Error("User.NotFound", "User not found."));
+            
+            user.FirstName = firstName;
+            user.LastName = lastName;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var identityErrors = result.Errors.First();
+                var error = new Error(identityErrors.Code, identityErrors.Description);
+                return Result.Failure(error);
+            }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> UpdateUserRolesAsync(string userId, IEnumerable<string> roles)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(new Error("User.NotFound", "User not found."));
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            
+            var removeRolesResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeRolesResult.Succeeded)
+            {
+                var identityErrors = removeRolesResult.Errors.First();
+                var error = new Error(identityErrors.Code, identityErrors.Description);
+                return Result.Failure(error);
+            }
+
+            var addRolesResult = await _userManager.AddToRolesAsync(user, roles);
+            if (!addRolesResult.Succeeded)
+            {
+                var identityErrors = addRolesResult.Errors.First();
+                var error = new Error(identityErrors.Code, identityErrors.Description);
+                return Result.Failure(error);
+            }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> UpdateUserStatusAsync(string userId, bool isActive)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(new Error("User.NotFound", "User not found."));
+
+            user.IsActive = isActive;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var identityErrors = result.Errors.First();
+                var error = new Error(identityErrors.Code, identityErrors.Description);
+                return Result.Failure(error);
+            }
+
+            return Result.Success();
+        }
+
+        #endregion
     }
 }

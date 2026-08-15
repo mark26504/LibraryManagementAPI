@@ -14,3 +14,7 @@ global using LibraryManagement.Services.Abstraction.Contracts.Authentication;
 global using LibraryManagement.Shared.Dtos.Authentication;
 global using LibraryManagement.Services.Configurations;
 global using LibraryManagement.Services;
+global using LibraryManagement.Services.Abstraction.Contracts.Identity;
+global using LibraryManagement.Shared.Dtos.Identity;
+global using LibraryManagement.Shared.Dtos.UserManagement;
+global using LibraryManagement.Shared.Responses;
