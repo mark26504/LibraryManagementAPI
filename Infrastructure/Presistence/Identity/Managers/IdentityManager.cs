@@ -29,7 +29,19 @@
                 var error = new Error(identityErrors.Code, identityErrors.Description);
                 return Result.Failure(error);
             }
-            await _userManager.AddToRoleAsync(user, role);
+            var roleResult = await _userManager.AddToRoleAsync(user, role);
+
+            if (!roleResult.Succeeded)
+            {
+                var identityError = roleResult.Errors.First();
+
+                var error = new Error(
+                    identityError.Code,
+                    identityError.Description);
+
+                return Result.Failure(error);
+            }
+
             return Result.Success();
         }
 
@@ -140,7 +152,11 @@
                 );
                 identityUsers.Add(identityUserInfo);
             }
-            var pagedResponse = new PagedResponse<IdentityUserInfo>(identityUsers, queryParameters.PageNumber, queryParameters.PageSize, totalCount);
+            var pagedResponse = new PagedResponse<IdentityUserInfo>(
+                identityUsers,
+                totalCount,
+                queryParameters.PageNumber,
+                queryParameters.PageSize);
             return Result<PagedResponse<IdentityUserInfo>>.Success(pagedResponse);
         }
 

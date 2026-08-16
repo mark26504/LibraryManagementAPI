@@ -1,8 +1,4 @@
-
-using LibraryManagement.Persistence;
-using LibraryManagement.Persistence.Data;
-using LibraryManagement.Presentation.Controllers;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 namespace LibraryManagement.API
 {
@@ -12,20 +8,39 @@ namespace LibraryManagement.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers()
-                .AddApplicationPart(typeof(AuthenticationController).Assembly);
+            builder.Services
+                .AddControllers()
+                .AddApplicationPart(
+                    typeof(AuthenticationController).Assembly);
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            // Allow Presistence Service
-            builder.Services.AddPersistenceServices(builder.Configuration);
-
-            // Allow AutoMapper
-            builder.Services.AddAutoMapper(config => 
+            builder.Services.AddSwaggerGen(options =>
             {
-                config.AddMaps(typeof(LibraryManagement.Services.AssemblyReference).Assembly);
+                options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "JWT Authorization header using the Bearer scheme."
+                });
+
+                options.AddSecurityRequirement(document =>
+                    new OpenApiSecurityRequirement
+                    {
+                        [new OpenApiSecuritySchemeReference("bearer", document)] = []
+                    });
             });
+
+            // Persistence + Business Services
+            builder.Services.AddPersistenceServices(
+                builder.Configuration);
+
+            // Angular CORS
+            builder.Services.AddAngularCorsPolicy();
+
+            // JWT Authentication + Authorization
+            builder.Services.AddJwtAuthentication(
+                builder.Configuration);
 
             var app = builder.Build();
 
@@ -37,6 +52,9 @@ namespace LibraryManagement.API
 
             app.UseHttpsRedirection();
 
+            app.UseCors("AngularClient");
+
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
