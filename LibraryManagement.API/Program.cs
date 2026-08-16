@@ -1,6 +1,7 @@
 
 using LibraryManagement.Persistence;
 using LibraryManagement.Persistence.Data;
+using LibraryManagement.Presentation.Controllers;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.API
@@ -11,7 +12,8 @@ namespace LibraryManagement.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddApplicationPart(typeof(AuthenticationController).Assembly);
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

@@ -6,7 +6,7 @@
             this IServiceCollection services)
         {
             services.AddScoped<ITokenProvider, TokenProvider>();
-            // services.AddScoped<IAuthenticationService, AuthenticationService>();
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IUserService, UserService>();
 
             services.AddAutoMapper(
