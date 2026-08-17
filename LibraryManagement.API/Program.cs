@@ -1,5 +1,3 @@
-using Microsoft.OpenApi;
-
 namespace LibraryManagement.API
 {
     public class Program

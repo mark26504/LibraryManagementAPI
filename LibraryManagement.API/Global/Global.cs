@@ -4,5 +4,4 @@ global using System.Text;
 global using LibraryManagement.API.Extensions;
 global using LibraryManagement.Persistence;
 global using LibraryManagement.Presentation.Controllers;
-
-
+global using Microsoft.OpenApi;
