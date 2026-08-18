@@ -17,3 +17,9 @@ global using LibraryManagement.Shared.Dtos.Identity;
 global using LibraryManagement.Shared.Dtos.UserManagement;
 global using LibraryManagement.Services.Abstraction.Contracts.Users;
 global using LibraryManagement.Services.Implementations.UserManagement;
+global using LibraryManagement.Domain.Entities;
+global using LibraryManagement.Shared.Dtos.Authors;
+global using LibraryManagement.Domain.Contracts;
+global using LibraryManagement.Services.Abstraction.Contracts.Authors;
+global using LibraryManagement.Services.Implementations.Authors;
+

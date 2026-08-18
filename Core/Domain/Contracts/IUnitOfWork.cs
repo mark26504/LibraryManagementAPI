@@ -2,10 +2,10 @@
 {
     public interface IUnitOfWork
     {
-        IBookRepository BooksRepo { get; }
-        IAuthorRepository AuthorsRepo { get; }
-        ICategoryRepository CategoriesRepo { get; }
-        IBorrowingRepository BorrowingsRepo { get; }
+        IBookRepository Books { get; }
+        IAuthorRepository Authors { get; }
+        ICategoryRepository Categories { get; }
+        IBorrowingRepository Borrowings { get; }
         Task<int> SaveChangesAsync();
     }
 }

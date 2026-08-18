@@ -7,3 +7,5 @@ global using System.Security.Claims;
 global using LibraryManagement.Shared.Dtos.Authentication;
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.Extensions.Configuration;
+global using LibraryManagement.Services.Abstraction.Contracts.Authors;
+global using LibraryManagement.Shared.Dtos.Authors;

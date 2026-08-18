@@ -8,7 +8,7 @@
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IUserService, UserService>();
-
+            services.AddScoped<IAuthorService, AuthorService>();
             services.AddAutoMapper(
                 cfg => { },
                 typeof(DependencyInjection).Assembly);
