@@ -9,6 +9,7 @@
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthorService, AuthorService>();
+            services.AddScoped<ICategoryService, CategoryService>();
             services.AddAutoMapper(
                 cfg => { },
                 typeof(DependencyInjection).Assembly);

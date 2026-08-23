@@ -23,7 +23,7 @@
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAuthorByIdAsync(Guid id)
+        public async Task<IActionResult> GetAuthorById(Guid id)
         {
             var author = await _authorService.GetAuthorByIdAsync(id);
 
@@ -42,7 +42,7 @@
             if (result.IsFailure)
                 return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetAuthorByIdAsync), new { id = result.Value.Id }, result.Value);
+            return CreatedAtAction(nameof(GetAuthorById), new { id = result.Value.Id }, result.Value);
         }
 
         [HttpPut("{id}")]

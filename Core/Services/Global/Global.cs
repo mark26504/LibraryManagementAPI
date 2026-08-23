@@ -22,4 +22,9 @@ global using LibraryManagement.Shared.Dtos.Authors;
 global using LibraryManagement.Domain.Contracts;
 global using LibraryManagement.Services.Abstraction.Contracts.Authors;
 global using LibraryManagement.Services.Implementations.Authors;
+global using LibraryManagement.Shared.Dtos.Categories;
+global using LibraryManagement.Services.Abstraction.Contracts.Categoties;
+global using LibraryManagement.Services.Implementations.Categories;
+
+
 

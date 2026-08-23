@@ -54,6 +54,9 @@
                 return Result.Failure(new Error("Author.NotFound", "Author not found."));
 
             _mapper.Map(request, author);
+
+            author.UpdatedAt = DateTime.UtcNow;
+
             await _unitOfWork.SaveChangesAsync();
 
             return Result.Success();
@@ -67,7 +70,10 @@
             var hasBookRelations = await _unitOfWork.Authors.HasBookRelationsAsync(authorId);
 
             if (hasBookRelations)
+            {
                 author.IsActive = false;
+                author.UpdatedAt = DateTime.UtcNow;
+            }
             else
                 _unitOfWork.Authors.Delete(author);
 
