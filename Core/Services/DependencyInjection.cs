@@ -10,6 +10,7 @@
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthorService, AuthorService>();
             services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IBookService, BookService>();
             services.AddAutoMapper(
                 cfg => { },
                 typeof(DependencyInjection).Assembly);

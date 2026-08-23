@@ -1,7 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Categoties;
-using LibraryManagement.Shared.Dtos.Categories;
-
-namespace LibraryManagement.Presentation.Controllers
+﻿namespace LibraryManagement.Presentation.Controllers
 {
     [ApiController]
     [Route("api/v1/categories")]
