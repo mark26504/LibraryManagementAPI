@@ -1,5 +1,4 @@
-﻿using LibraryManagement.Domain.Entities;
-using LibraryManagement.Services.Abstraction.Contracts.Books;
+﻿using LibraryManagement.Services.Abstraction.Contracts.Books;
 using LibraryManagement.Shared.Dtos.Books;
 
 namespace LibraryManagement.Presentation.Controllers
@@ -15,9 +14,9 @@ namespace LibraryManagement.Presentation.Controllers
             _bookService = bookService;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAllBooks()
+        public async Task<IActionResult> GetAllBooks([FromQuery] BookParameters parameters)
         {
-            var books = await _bookService.GetAllBooksAsync();
+            var books = await _bookService.GetAllBooksAsync(parameters);
 
             if (books.IsFailure)
                 return BadRequest(books.Error);

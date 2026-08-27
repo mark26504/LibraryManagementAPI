@@ -27,7 +27,5 @@ global using LibraryManagement.Services.Abstraction.Contracts.Categoties;
 global using LibraryManagement.Services.Implementations.Categories;
 global using LibraryManagement.Services.Abstraction.Contracts.Books;
 global using LibraryManagement.Services.Implementations.Books;
-
-
-
+global using LibraryManagement.Shared.Dtos.Books;
 

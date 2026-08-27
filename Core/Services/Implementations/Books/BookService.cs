@@ -1,7 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Books;
-using LibraryManagement.Shared.Dtos.Books;
-
-namespace LibraryManagement.Services.Implementations.Books
+﻿namespace LibraryManagement.Services.Implementations.Books
 {
     internal sealed class BookService : IBookService
     {
@@ -14,14 +11,26 @@ namespace LibraryManagement.Services.Implementations.Books
             _mapper = mapper;
         }
 
-        public async Task<Result<IEnumerable<BookResponse>>> GetAllBooksAsync()
+        public async Task<Result<PagedResponse<BookResponse>>> GetAllBooksAsync(BookParameters parameters)
         {
-            var books = await _unitOfWork.Books.GetAllBooksAsync();
+            var books = await _unitOfWork.Books.GetAllBooksAsync
+                (parameters.PageNumber,
+                 parameters.PageSize,
+                 parameters.SearchTerm,
+                 parameters.CategoryId,
+                 parameters.OrderBy,
+                 false);
 
-            var bookResponses =
-                _mapper.Map<IEnumerable<BookResponse>>(books);
+            var bookResponse = _mapper.Map<IEnumerable<BookResponse>>(books.Books);
 
-            return Result<IEnumerable<BookResponse>>.Success(bookResponses);
+            var pagedResponse = new PagedResponse<BookResponse>
+            (
+                bookResponse,
+                books.TotalCount,
+                parameters.PageNumber,
+                parameters.PageSize
+            );
+            return Result<PagedResponse<BookResponse>>.Success(pagedResponse);
         }
 
         public async Task<Result<BookResponse>> GetBookByIdAsync(Guid id)
