@@ -1,7 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Books;
-using LibraryManagement.Shared.Dtos.Books;
-
-namespace LibraryManagement.Presentation.Controllers
+﻿namespace LibraryManagement.Presentation.Controllers
 {
     [ApiController]
     [Route("api/v1/books")]
@@ -71,6 +68,32 @@ namespace LibraryManagement.Presentation.Controllers
                 return BadRequest(result.Error);
             }
             return NoContent();
+        }
+
+        [Authorize(Roles = "Admin, Librarian")]
+        [HttpPut("{id}/cover")]
+        public async Task<IActionResult> UploadCover(Guid id, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var extention = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (extention == ".jpg" || extention == ".jpeg" || extention == ".png")
+            {
+                await using var stream = file.OpenReadStream();
+                var result = await _bookService.UploadBookCoverAsync(id, stream, extention);
+                if (result.IsFailure)
+                {
+                    if (result.Error.Code == "Book.NotFound")
+                        return NotFound(result.Error);
+                    return BadRequest(result.Error);
+                }
+                return NoContent();
+            }
+            else
+            {
+                return BadRequest("Invalid file type. Only .jpg, .jpeg, and .png are allowed.");
+            }
         }
     }
 }

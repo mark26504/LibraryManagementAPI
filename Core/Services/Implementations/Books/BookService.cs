@@ -1,14 +1,18 @@
-﻿namespace LibraryManagement.Services.Implementations.Books
+﻿using LibraryManagement.Services.Abstraction.Contracts.Common;
+
+namespace LibraryManagement.Services.Implementations.Books
 {
     internal sealed class BookService : IBookService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IFileStorageService _storageService;
 
-        public BookService(IUnitOfWork unitOfWork, IMapper mapper)
+        public BookService(IUnitOfWork unitOfWork, IMapper mapper, IFileStorageService storageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _storageService = storageService;
         }
 
         public async Task<Result<PagedResponse<BookResponse>>> GetAllBooksAsync(BookParameters parameters)
@@ -129,6 +133,23 @@
             return Result.Success();
         }
 
+        public async Task<Result> UploadBookCoverAsync(Guid bookId, Stream fileStream, string extention)
+        {
+            var book = await _unitOfWork.Books.GetBookByIdAsync(bookId, true);
+            if (book is null)
+                return Result.Failure(new Error("Book.NotFound", "Book not found."));
 
+            // Upload the book cover using the storage service
+            if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                _storageService.DeleteFile(book.CoverImageUrl);
+
+            var filePath = await _storageService.SaveFileAsync(fileStream, extention, "images/books");
+            book.CoverImageUrl = filePath;
+            book.UpdatedAt = DateTime.UtcNow;
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return Result.Success();
+        }
     }
 }

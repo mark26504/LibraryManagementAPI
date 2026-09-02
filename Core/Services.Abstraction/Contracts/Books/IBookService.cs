@@ -7,5 +7,6 @@
         Task<Result<BookResponse>> CreateBookAsync(CreateBookRequest request);
         Task<Result> UpdateBookAsync(Guid id, UpdateBookRequest request);
         Task<Result> DeleteBookAsync(Guid id);
+        Task<Result> UploadBookCoverAsync(Guid bookId, Stream fileStream, string extention);
     }
 }

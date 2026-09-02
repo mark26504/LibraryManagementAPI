@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Infrastructure\Presistence\LibraryManagement.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\images\books\" />
+  </ItemGroup>
+
 </Project>
