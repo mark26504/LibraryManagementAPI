@@ -30,5 +30,10 @@ global using LibraryManagement.Services.Implementations.Books;
 global using LibraryManagement.Shared.Dtos.Books;
 global using LibraryManagement.Services.Abstraction.Contracts.Common;
 global using LibraryManagement.Services.Implementations.Common;
+global using LibraryManagement.Shared.Dtos.BorrowingRecords;
+global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
+global using LibraryManagement.Services.Implementations.BorrowingRecords;
+
+
 
 

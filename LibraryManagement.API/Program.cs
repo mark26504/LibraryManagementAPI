@@ -37,8 +37,7 @@ namespace LibraryManagement.API
             builder.Services.AddAngularCorsPolicy();
 
             // JWT Authentication + Authorization
-            builder.Services.AddJwtAuthentication(
-                builder.Configuration);
+            builder.Services.AddJwtAuthentication(builder.Configuration);
 
             var app = builder.Build();
 

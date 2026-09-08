@@ -13,5 +13,8 @@ global using LibraryManagement.Services.Abstraction.Contracts.Categoties;
 global using LibraryManagement.Shared.Dtos.Categories;
 global using LibraryManagement.Services.Abstraction.Contracts.Books;
 global using LibraryManagement.Shared.Dtos.Books;
+global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
+global using LibraryManagement.Shared.Dtos.BorrowingRecords;
+
 
 
