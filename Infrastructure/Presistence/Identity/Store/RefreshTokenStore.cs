@@ -49,5 +49,20 @@
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task RevokeAllActiveForUserAsync(string userId)
+        {
+            var now = DateTime.UtcNow;
+
+            var tokens = await _dbContext.RefreshTokens
+                .Where(t => t.UserId == userId
+                         && t.RevokedAt == null
+                         && t.ExpiresAt > now)
+                .ToListAsync();
+
+            foreach (var token in tokens)
+                token.RevokedAt = now;
+
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

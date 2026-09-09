@@ -37,4 +37,7 @@ global using LibraryManagement.Domain.Contracts.BorrowingParamters;
 global using LibraryManagement.Domain.Enums;
 global using LibraryManagement.Shared.Constants;
 global using LibraryManagement.Domain.Global;
+global using LibraryManagement.Services.Abstraction.Contracts.Email;
+global using Microsoft.Extensions.Logging;
+
 

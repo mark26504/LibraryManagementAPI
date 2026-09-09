@@ -77,6 +77,43 @@
             return Ok();
         }
 
+        // POST: api/v1/auth/send-email-confirmation
+        [HttpPost("send-email-confirmation")]
+        public async Task<IActionResult> SendEmailConfirmation(
+            [FromBody] SendEmailConfirmationRequest request)
+        {
+            var result = await _authenticationService.SendEmailConfirmationAsync(request.Email);
+            return result.IsSuccess ? Ok() : Failure(result);
+        }
+
+        // POST: api/v1/auth/confirm-email
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(
+            [FromBody] ConfirmEmailRequest request)
+        {
+            var result = await _authenticationService.ConfirmEmailAsync(request.Email, request.Token);
+            return result.IsSuccess ? Ok() : Failure(result);
+        }
+
+        // POST: api/v1/auth/forgot-password
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(
+            [FromBody] ForgotPasswordRequest request)
+        {
+            var result = await _authenticationService.ForgotPasswordAsync(request.Email);
+            return result.IsSuccess ? Ok() : Failure(result);
+        }
+
+        // POST: api/v1/auth/reset-password
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(
+            [FromBody] ResetPasswordRequest request)
+        {
+            var result = await _authenticationService.ResetPasswordAsync(
+                request.Email, request.Token, request.Password);
+            return result.IsSuccess ? Ok() : Failure(result);
+        }
+
         #region Cookie Helpers
 
         private void SetRefreshTokenCookie(string refreshToken)

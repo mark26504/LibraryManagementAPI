@@ -226,5 +226,71 @@
         }
 
         #endregion
+
+        #region Email Confirmation & Password Recovery
+
+        public async Task<Result<string>> FindUserIdByEmailAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+                return Result<string>.Failure(
+                    new Error("Identity.UserNotFound", "User not found."));
+
+            return Result<string>.Success(user.Id);
+        }
+
+        public async Task<Result<string>> GenerateEmailConfirmationTokenAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result<string>.Failure(
+                    new Error("Identity.UserNotFound", "User not found."));
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            return Result<string>.Success(token);
+        }
+
+        public async Task<Result> ConfirmEmailAsync(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(
+                    new Error("Identity.UserNotFound", "User not found."));
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (!result.Succeeded)
+                return Result.Failure(
+                    Error.Validation("Identity.InvalidToken", "Invalid or expired confirmation token."));
+
+            return Result.Success();
+        }
+
+        public async Task<Result<string>> GeneratePasswordResetTokenAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result<string>.Failure(
+                    new Error("Identity.UserNotFound", "User not found."));
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return Result<string>.Success(token);
+        }
+
+        public async Task<Result> ResetPasswordAsync(string userId, string token, string newPassword)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(
+                    new Error("Identity.UserNotFound", "User not found."));
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            if (!result.Succeeded)
+                return Result.Failure(
+                    Error.Validation("Identity.InvalidToken", "Invalid or expired reset token or weak password."));
+
+            return Result.Success();
+        }
+
+        #endregion 
     }
 }

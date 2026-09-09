@@ -18,3 +18,14 @@ global using LibraryManagement.Services.Abstraction.Contracts.Identity;
 global using LibraryManagement.Shared.Dtos.Identity;
 global using LibraryManagement.Shared.Dtos.UserManagement;
 global using LibraryManagement.Shared.Responses;
+global using LibraryManagement.Services.Abstraction.Contracts.Email;
+global using MailKit.Net.Smtp;
+global using MailKit.Security;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using MimeKit;
+global using LibraryManagement.Persistence.Email;
+global using LibraryManagement.Persistence.Identity.Managers;
+global using LibraryManagement.Persistence.Identity.Store;
+
+

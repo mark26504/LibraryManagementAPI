@@ -5,18 +5,24 @@
         private readonly IIdentityManager _identityManager;
         private readonly ITokenProvider _tokenProvider;
         private readonly IRefreshTokenStore _refreshTokenStore;
+        private readonly IEmailService _emailService;
         private readonly IOptions<JwtOptions> _jwtOptions;
+        private readonly ILogger<AuthenticationService> _logger;
 
-        public AuthenticationService(
-            IIdentityManager identityManager,
-            ITokenProvider tokenProvider,
-            IRefreshTokenStore refreshTokenStore,
-            IOptions<JwtOptions> jwtOptions)
+        public AuthenticationService
+             (IIdentityManager identityManager,
+              ITokenProvider tokenProvider,
+              IRefreshTokenStore refreshTokenStore,
+              IEmailService emailService,
+              IOptions<JwtOptions> jwtOptions,
+              ILogger<AuthenticationService> logger)
         {
             _identityManager = identityManager;
             _tokenProvider = tokenProvider;
             _refreshTokenStore = refreshTokenStore;
+            _emailService = emailService;
             _jwtOptions = jwtOptions;
+            _logger = logger;
         }
 
         public async Task<Result> RegisterUserAsync(UserRegistrationDto registrationDto)
@@ -45,12 +51,12 @@
                 return Result<AuthenticationResult>.Failure(
                     Error.Forbidden("Authentication.AccountDeactivated", "Account is deactivated."));
 
-            var authenticatedUser = new AuthenticationUserDto(
-                result.Value.Id,
-                result.Value.FirstName,
-                result.Value.LastName,
-                result.Value.Email,
-                result.Value.Roles);
+            var authenticatedUser = new AuthenticationUserDto
+                (result.Value.Id,
+                 result.Value.FirstName,
+                 result.Value.LastName,
+                 result.Value.Email,
+                 result.Value.Roles);
 
             var accessToken = _tokenProvider.GenerateAccessToken(authenticatedUser);
             var rawRefreshToken = _tokenProvider.GenerateRefreshToken();
@@ -60,12 +66,10 @@
             await _refreshTokenStore.StoreTokenAsync(authenticatedUser.Id, hashedToken, expiresAt);
 
             var authenticationResponse = new AuthenticationResponse(
-                accessToken.Token,
-                accessToken.ExpiresAt,
-                authenticatedUser);
+                accessToken.Token, accessToken.ExpiresAt, authenticatedUser);
 
-            var authenticationResult = new AuthenticationResult(authenticationResponse, rawRefreshToken);
-            return Result<AuthenticationResult>.Success(authenticationResult);
+            return Result<AuthenticationResult>.Success(
+                new AuthenticationResult(authenticationResponse, rawRefreshToken));
         }
 
         public async Task<Result<AuthenticationResult>> RefreshTokenAsync(string refreshToken)
@@ -103,12 +107,10 @@
             await _refreshTokenStore.RevokeTokenAsync(hashedToken, newHashedToken);
 
             var authenticationResponse = new AuthenticationResponse(
-                accessToken.Token,
-                accessToken.ExpiresAt,
-                authenticatedUser);
+                accessToken.Token, accessToken.ExpiresAt, authenticatedUser);
 
-            var authenticationResult = new AuthenticationResult(authenticationResponse, newRawRefreshToken);
-            return Result<AuthenticationResult>.Success(authenticationResult);
+            return Result<AuthenticationResult>.Success(
+                new AuthenticationResult(authenticationResponse, newRawRefreshToken));
         }
 
         public async Task<Result> RevokeTokenAsync(string refreshToken)
@@ -117,5 +119,89 @@
             await _refreshTokenStore.RevokeTokenAsync(hashedToken);
             return Result.Success();
         }
+
+        #region Email Confirmation & Password Recovery
+
+        public async Task<Result> SendEmailConfirmationAsync(string email)
+        {
+            var userResult = await _identityManager.FindUserIdByEmailAsync(email);
+            if (userResult.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Email confirmation requested for unknown address.");
+                return Result.Success();
+            }
+
+            var tokenResult = await _identityManager.GenerateEmailConfirmationTokenAsync(userResult.Value);
+            if (tokenResult.IsFailure)
+            {
+                _logger.LogError(
+                    "Failed to generate confirmation token for user {UserId}", userResult.Value);
+                return Result.Success();
+            }
+
+            await _emailService.SendEmailConfirmationAsync(email, tokenResult.Value);
+            return Result.Success();
+        }
+
+        public async Task<Result> ConfirmEmailAsync(string email, string token)
+        {
+            var userResult = await _identityManager.FindUserIdByEmailAsync(email);
+            if (userResult.IsFailure)
+                return Result.Failure(Error.Validation(
+                    "Authentication.InvalidConfirmation",
+                    "Invalid email or confirmation token."));
+
+            var result = await _identityManager.ConfirmEmailAsync(userResult.Value, token);
+            if (result.IsFailure)
+                return Result.Failure(Error.Validation(
+                    "Authentication.InvalidConfirmation",
+                    "Invalid email or confirmation token."));
+
+            return Result.Success();
+        }
+
+        public async Task<Result> ForgotPasswordAsync(string email)
+        {
+            var userResult = await _identityManager.FindUserIdByEmailAsync(email);
+            if (userResult.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Password reset requested for unknown address.");
+                return Result.Success();
+            }
+
+            var tokenResult = await _identityManager.GeneratePasswordResetTokenAsync(userResult.Value);
+            if (tokenResult.IsFailure)
+            {
+                _logger.LogError(
+                    "Failed to generate reset token for user {UserId}", userResult.Value);
+                return Result.Success();
+            }
+
+            await _emailService.SendPasswordResetAsync(email, tokenResult.Value);
+            return Result.Success();
+        }
+
+        public async Task<Result> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var userResult = await _identityManager.FindUserIdByEmailAsync(email);
+            if (userResult.IsFailure)
+                return Result.Failure(Error.Validation(
+                    "Authentication.InvalidReset",
+                    "Invalid email or reset token."));
+
+            var result = await _identityManager.ResetPasswordAsync(userResult.Value, token, newPassword);
+            if (result.IsFailure)
+                return Result.Failure(Error.Validation(
+                    "Authentication.InvalidReset",
+                    "Invalid email or reset token."));
+
+            await _refreshTokenStore.RevokeAllActiveForUserAsync(userResult.Value);
+
+            return Result.Success();
+        }
+
+        #endregion
     }
 }

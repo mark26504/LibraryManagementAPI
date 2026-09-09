@@ -1,8 +1,4 @@
-﻿using LibraryManagement.Persistence.Identity.Managers;
-using LibraryManagement.Persistence.Identity.Store;
-using LibraryManagement.Services.Abstraction.Contracts.Identity;
-
-namespace LibraryManagement.Persistence
+﻿namespace LibraryManagement.Persistence
 {
     public static class DependencyInjection
     {
@@ -39,6 +35,11 @@ namespace LibraryManagement.Persistence
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IIdentityManager, IdentityManager>();
             services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+
+            services.Configure<EmailOptions>(
+                configuration.GetSection(EmailOptions.SectionName));
+
+            services.AddScoped<IEmailService, MailKitEmailService>();
             return services;
         }
     }

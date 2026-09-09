@@ -5,6 +5,8 @@ global using LibraryManagement.Shared.Dtos.Authors;
 global using LibraryManagement.Shared.Dtos.Categories;
 global using LibraryManagement.Shared.Dtos.Books;
 global using LibraryManagement.Shared.Dtos.BorrowingRecords;
+global using LibraryManagement.Shared.Dtos.UserManagement;
+
 
 
 
