@@ -2,7 +2,7 @@
 {
     [ApiController]
     [Route("api/v1/categories")]
-    public class CategoriesController : ControllerBase
+    public class CategoriesController : ApiControllerBase
     {
         private readonly ICategoryService _categoryService;
 
@@ -11,56 +11,50 @@
             _categoryService = categoryService;
         }
 
+        // GET: api/v1/categories
         [HttpGet]
         public async Task<IActionResult> GetCategoriesAsync()
         {
-            var categories = await _categoryService.GetAllCategoriesAsync();
-
-            if (categories.IsFailure)
-                return BadRequest(categories.Error);
-
-            return Ok(categories.Value);
+            var result = await _categoryService.GetAllCategoriesAsync();
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        [HttpGet("{id}")]
+        // GET: api/v1/categories/{id}
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetCategoryById(Guid id)
         {
-            var category = await _categoryService.GetCategoryByIdAsync(id);
-
-            if (category.IsFailure)
-                return NotFound(category.Error);
-
-            return Ok(category.Value);
+            var result = await _categoryService.GetCategoryByIdAsync(id);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        [Authorize(Roles = "Admin, Librarian")]
+        // POST: api/v1/categories
         [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> CreateCategoryAsync([FromBody] CreateCategoryRequest request)
         {
             var result = await _categoryService.CreateCategoryAsync(request);
             if (result.IsFailure)
-                return BadRequest(result.Error);
+                return Failure(result);
+
             return CreatedAtAction(nameof(GetCategoryById), new { id = result.Value.Id }, result.Value);
         }
 
-        [Authorize(Roles = "Admin, Librarian")]
-        [HttpPut("{id}")]
+        // PUT: api/v1/categories/{id}
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> UpdateCategoryAsync(Guid id, [FromBody] UpdateCategoryRequest request)
         {
             var result = await _categoryService.UpdateCategoryAsync(id, request);
-            if (result.IsFailure)
-                return NotFound(result.Error);
-            return NoContent();
+            return result.IsSuccess ? NoContent() : Failure(result);
         }
 
-        [Authorize(Roles = "Admin, Librarian")]
-        [HttpDelete("{id}")]
+        // DELETE: api/v1/categories/{id}
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> DeleteCategoryAsync(Guid id)
         {
             var result = await _categoryService.DeleteCategoryAsync(id);
-            if (result.IsFailure)
-                return NotFound(result.Error);
-            return NoContent();
+            return result.IsSuccess ? NoContent() : Failure(result);
         }
     }
 }
