@@ -1,6 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Common;
-
-namespace LibraryManagement.Services.Implementations.Books
+﻿namespace LibraryManagement.Services.Implementations.Books
 {
     internal sealed class BookService : IBookService
     {
@@ -26,7 +24,6 @@ namespace LibraryManagement.Services.Implementations.Books
                  false);
 
             var bookResponse = _mapper.Map<IEnumerable<BookResponse>>(books.Books);
-
             var pagedResponse = new PagedResponse<BookResponse>
             (
                 bookResponse,
@@ -34,6 +31,7 @@ namespace LibraryManagement.Services.Implementations.Books
                 parameters.PageNumber,
                 parameters.PageSize
             );
+
             return Result<PagedResponse<BookResponse>>.Success(pagedResponse);
         }
 
@@ -41,7 +39,8 @@ namespace LibraryManagement.Services.Implementations.Books
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, false);
             if (book == null)
-                return Result<BookResponse>.Failure(new Error("Book.NotFound", "Book not found."));
+                return Result<BookResponse>.Failure(
+                    Error.NotFound("Book.NotFound", "Book not found."));
 
             var bookResponse = _mapper.Map<BookResponse>(book);
             return Result<BookResponse>.Success(bookResponse);
@@ -49,11 +48,29 @@ namespace LibraryManagement.Services.Implementations.Books
 
         public async Task<Result<BookResponse>> CreateBookAsync(CreateBookRequest request)
         {
-            var book = _mapper.Map<Book>(request);
-            
-            foreach (var authorId in request.AuthorIds)
+            if (request.AuthorIds == null || !request.AuthorIds.Any())
+                return Result<BookResponse>.Failure(
+                    Error.Validation("Book.AuthorsRequired", "At least one author is required."));
+
+            var categoryExists = await _unitOfWork.Categories.GetCategoryByIdAsync(request.CategoryId, false) is not null;
+            if (!categoryExists)
+                return Result<BookResponse>.Failure(
+                    Error.NotFound("Category.NotFound", "The selected category does not exist."));
+
+            foreach (var authorId in request.AuthorIds.Distinct())
             {
-                book.BookAuthors.Add(new BookAuthor 
+                var authorExists = await _unitOfWork.Authors.GetAuthorByIdAsync(authorId, false) is not null;
+                if (!authorExists)
+                    return Result<BookResponse>.Failure(
+                        Error.NotFound("Author.NotFound", $"One of the selected authors does not exist."));
+            }
+
+            var book = _mapper.Map<Book>(request);
+            book.ISBN = NormalizeIsbn(book.ISBN);
+
+            foreach (var authorId in request.AuthorIds.Distinct())
+            {
+                book.BookAuthors.Add(new BookAuthor
                 {
                     BookId = book.Id,
                     AuthorId = authorId
@@ -61,7 +78,16 @@ namespace LibraryManagement.Services.Implementations.Books
             }
 
             _unitOfWork.Books.Create(book);
-            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
+            {
+                return Result<BookResponse>.Failure(
+                    Error.Conflict("Book.DuplicateIsbn", "A book with this ISBN already exists."));
+            }
 
             var bookResponse = _mapper.Map<BookResponse>(book);
             return Result<BookResponse>.Success(bookResponse);
@@ -70,21 +96,47 @@ namespace LibraryManagement.Services.Implementations.Books
         public async Task<Result> UpdateBookAsync(Guid id, UpdateBookRequest request)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, true);
-
             if (book is null)
-                return Result.Failure(new Error("Book.NotFound", "Book not found."));
+                return Result.Failure(
+                    Error.NotFound("Book.NotFound", "Book not found."));
+
+            if (request.AuthorIds == null || !request.AuthorIds.Any())
+                return Result.Failure(
+                    Error.Validation("Book.AuthorsRequired", "At least one author is required."));
+
+            var categoryExists = await _unitOfWork.Categories.GetCategoryByIdAsync(request.CategoryId, false) is not null;
+            if (!categoryExists)
+                return Result.Failure(
+                    Error.NotFound("Category.NotFound", "The selected category does not exist."));
+
+            foreach (var authorId in request.AuthorIds.Distinct())
+            {
+                var authorExists = await _unitOfWork.Authors.GetAuthorByIdAsync(authorId, false) is not null;
+                if (!authorExists)
+                    return Result.Failure(
+                        Error.NotFound("Author.NotFound", "One of the selected authors does not exist."));
+            }
 
             _mapper.Map(request, book);
+            book.ISBN = NormalizeIsbn(book.ISBN);
+
+            // Inventory invariant: available copies can never go below borrowed copies
+            var borrowedCopies = book.TotalCopies - book.AvailableCopies;
+            if (book.TotalCopies < borrowedCopies)
+                return Result.Failure(
+                    Error.Conflict("Book.InventoryConflict", "Total copies cannot be lower than the number of currently borrowed copies."));
+
+            book.AvailableCopies = book.TotalCopies - borrowedCopies;
 
             var requestedAuthorIds = request.AuthorIds
-                                    .Distinct() 
+                                    .Distinct()
                                     .ToHashSet();
 
-            var relationtsToRemove = book.BookAuthors
+            var relationsToRemove = book.BookAuthors
                 .Where(ba => !requestedAuthorIds.Contains(ba.AuthorId))
                 .ToList();
 
-            foreach (var relation in relationtsToRemove)
+            foreach (var relation in relationsToRemove)
             {
                 book.BookAuthors.Remove(relation);
             }
@@ -106,7 +158,21 @@ namespace LibraryManagement.Services.Implementations.Books
             }
 
             book.UpdatedAt = DateTime.UtcNow;
-            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
+            {
+                return Result.Failure(
+                    Error.Conflict("Book.ConcurrencyConflict", "The book was modified by another user. Please reload and try again."));
+            }
+            catch (Exception ex) when (ex.GetType().Name == "DbUpdateException")
+            {
+                return Result.Failure(
+                    Error.Conflict("Book.DuplicateIsbn", "A book with this ISBN already exists."));
+            }
 
             return Result.Success();
         }
@@ -114,42 +180,51 @@ namespace LibraryManagement.Services.Implementations.Books
         public async Task<Result> DeleteBookAsync(Guid id)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, true);
-
             if (book is null)
                 return Result.Failure(
-                    new Error("Book.NotFound", "Book not found."));
+                    Error.NotFound("Book.NotFound", "Book not found."));
 
             var bookRelationship = await _unitOfWork.Books.HasBorrowingRelationsAsync(id);
-
             if (bookRelationship)
             {
                 book.IsActive = false;
                 book.UpdatedAt = DateTime.UtcNow;
             }
             else
+            {
                 _unitOfWork.Books.Delete(book);
-            await _unitOfWork.SaveChangesAsync();
+            }
 
+            await _unitOfWork.SaveChangesAsync();
             return Result.Success();
         }
 
-        public async Task<Result> UploadBookCoverAsync(Guid bookId, Stream fileStream, string extention)
+        public async Task<Result<string>> UploadBookCoverAsync(Guid bookId, Stream fileStream, string extention)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(bookId, true);
             if (book is null)
-                return Result.Failure(new Error("Book.NotFound", "Book not found."));
+                return Result<string>.Failure(
+                    Error.NotFound("Book.NotFound", "Book not found."));
 
-            // Upload the book cover using the storage service
             if (!string.IsNullOrEmpty(book.CoverImageUrl))
                 _storageService.DeleteFile(book.CoverImageUrl);
 
             var filePath = await _storageService.SaveFileAsync(fileStream, extention, "images/books");
+
             book.CoverImageUrl = filePath;
             book.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
 
-            return Result.Success();
+            return Result<string>.Success(filePath);
         }
+
+        #region Helper Methods
+
+        // Canonicalize ISBN before uniqueness checks (contract section 10)
+        private static string NormalizeIsbn(string isbn)
+            => new string(isbn.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
+        #endregion
     }
 }
