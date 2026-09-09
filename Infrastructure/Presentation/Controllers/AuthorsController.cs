@@ -2,7 +2,7 @@
 {
     [ApiController]
     [Route("api/v1/authors")]
-    public class AuthorsController : ControllerBase
+    public class AuthorsController : ApiControllerBase
     {
         private readonly IAuthorService _authorService;
 
@@ -11,72 +11,50 @@
             _authorService = authorService;
         }
 
+        // GET: api/v1/authors
         [HttpGet]
         public async Task<IActionResult> GetAuthorsAsync()
         {
-            var authors = await _authorService.GetAllAuthorsAsync();
-
-            if (authors.IsFailure)
-                return BadRequest(authors.Error);
-            
-            return Ok(authors.Value);
+            var result = await _authorService.GetAllAuthorsAsync();
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        [HttpGet("{id}")]
+        // GET: api/v1/authors/{id}
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetAuthorById(Guid id)
         {
-            var author = await _authorService.GetAuthorByIdAsync(id);
-
-            if (author.IsFailure)
-                return NotFound(author.Error);
-
-            return Ok(author.Value);
+            var result = await _authorService.GetAuthorByIdAsync(id);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
+        // POST: api/v1/authors
         [HttpPost]
-        [Authorize(Roles = "Admin, Librarian")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> CreateAuthorAsync([FromBody] CreateAuthorRequest request)
         {
             var result = await _authorService.CreateAuthorAsync(request);
-
             if (result.IsFailure)
-                return BadRequest(result.Error);
+                return Failure(result);
 
             return CreatedAtAction(nameof(GetAuthorById), new { id = result.Value.Id }, result.Value);
         }
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, Librarian")]
+        // PUT: api/v1/authors/{id}
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> UpdateAuthorAsync(Guid id, [FromBody] UpdateAuthorRequest request)
         {
             var result = await _authorService.UpdateAuthorAsync(id, request);
-
-            if (result.IsFailure)
-            {
-                if (result.Error.Code == "Author.NotFound")
-                    return NotFound(result.Error);
-                else
-                    return BadRequest(result.Error);
-            }
-
-            return NoContent();
+            return result.IsSuccess ? NoContent() : Failure(result);
         }
 
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, Librarian")]
+        // DELETE: api/v1/authors/{id}
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> DeleteAuthorAsync(Guid id)
         {
             var result = await _authorService.DeleteAuthorAsync(id);
-
-            if (result.IsFailure)
-            {
-                if (result.Error.Code == "Author.NotFound")
-                    return NotFound(result.Error);
-                else
-                    return BadRequest(result.Error);
-            }
-
-            return NoContent();
+            return result.IsSuccess ? NoContent() : Failure(result);
         }
     }
 }
