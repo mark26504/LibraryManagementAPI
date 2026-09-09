@@ -36,7 +36,7 @@
         }
 
         // POST: api/v1/books
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         [HttpPost]
         public async Task<IActionResult> CreateBook([FromBody] CreateBookRequest request)
         {
@@ -48,7 +48,7 @@
         }
 
         // PUT: api/v1/books/{id}
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> UpdateBook(Guid id, [FromBody] UpdateBookRequest request)
         {
@@ -57,7 +57,7 @@
         }
 
         // DELETE: api/v1/books/{id}
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteBook(Guid id)
         {
@@ -66,7 +66,7 @@
         }
 
         // POST: api/v1/books/{id}/cover
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         [HttpPost("{id:guid}/cover")]
         public async Task<IActionResult> UploadCover(Guid id, IFormFile file)
         {

@@ -27,7 +27,7 @@
 
             // Bussiness Rule
             var userBorrowings = await _unitOfWork.Borrowings.CountActiveBorrowingsAsync(userId, false);
-            if (userBorrowings >= 5)
+            if (userBorrowings >= LibraryRules.MaxActiveBorrowings)
                 return Result<BorrowingResponse>.Failure(
                     Error.Conflict("Borrowing.LimitExceeded", "You have reached the maximum limit of 5 active borrowings."));
 
@@ -42,7 +42,7 @@
                 UserId = userId,
                 BookId = request.BookId,
                 BorrowedAt = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(14), // 2 weeks borrowing period
+                DueDate = DateTime.UtcNow.AddDays(LibraryRules.StandardBorrowingPeriodDays), // 2 weeks borrowing period
             };
 
             book.AvailableCopies--;

@@ -29,7 +29,7 @@
 
         // POST: api/v1/categories
         [HttpPost]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> CreateCategoryAsync([FromBody] CreateCategoryRequest request)
         {
             var result = await _categoryService.CreateCategoryAsync(request);
@@ -41,7 +41,7 @@
 
         // PUT: api/v1/categories/{id}
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> UpdateCategoryAsync(Guid id, [FromBody] UpdateCategoryRequest request)
         {
             var result = await _categoryService.UpdateCategoryAsync(id, request);
@@ -50,7 +50,7 @@
 
         // DELETE: api/v1/categories/{id}
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> DeleteCategoryAsync(Guid id)
         {
             var result = await _categoryService.DeleteCategoryAsync(id);

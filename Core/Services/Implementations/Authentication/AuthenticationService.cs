@@ -21,7 +21,7 @@
 
         public async Task<Result> RegisterUserAsync(UserRegistrationDto registrationDto)
         {
-            var result = await _identityManager.CreateUserAsync(registrationDto, "Member");
+            var result = await _identityManager.CreateUserAsync(registrationDto, RoleNames.Member);
             if (result.IsFailure)
             {
                 if (result.Error.Code.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))

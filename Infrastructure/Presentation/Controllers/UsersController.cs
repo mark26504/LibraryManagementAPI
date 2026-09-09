@@ -1,4 +1,6 @@
-﻿namespace LibraryManagement.Presentation.Controllers
+﻿using LibraryManagement.Shared.Constants;
+
+namespace LibraryManagement.Presentation.Controllers
 {
     [ApiController]
     [Route("api/v1/users")]
@@ -13,7 +15,7 @@
 
         // GET: /api/v1/users
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<IActionResult> GetAllUsers(
             [FromQuery] UserQueryParametersDto queryParameters)
         {
@@ -23,7 +25,7 @@
 
         // GET: /api/v1/users/{id}
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<IActionResult> GetUserById([FromRoute] string id)
         {
             var result = await _userService.GetUserByIdAsync(id);
@@ -32,7 +34,7 @@
 
         // PATCH: /api/v1/users/{id}/status
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<IActionResult> UpdateUserStatus(
             [FromRoute] string id,
             [FromBody] UpdateUserStatusDto statusDto)
@@ -43,7 +45,7 @@
 
         // POST: /api/v1/users/{id}/roles
         [HttpPost("{id}/roles")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<IActionResult> UpdateUserRoles(
             [FromRoute] string id,
             [FromBody] UpdateUserRolesDto rolesDto)

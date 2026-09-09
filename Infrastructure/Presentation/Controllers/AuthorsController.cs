@@ -29,7 +29,7 @@
 
         // POST: api/v1/authors
         [HttpPost]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> CreateAuthorAsync([FromBody] CreateAuthorRequest request)
         {
             var result = await _authorService.CreateAuthorAsync(request);
@@ -41,7 +41,7 @@
 
         // PUT: api/v1/authors/{id}
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> UpdateAuthorAsync(Guid id, [FromBody] UpdateAuthorRequest request)
         {
             var result = await _authorService.UpdateAuthorAsync(id, request);
@@ -50,7 +50,7 @@
 
         // DELETE: api/v1/authors/{id}
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> DeleteAuthorAsync(Guid id)
         {
             var result = await _authorService.DeleteAuthorAsync(id);

@@ -75,7 +75,7 @@
 
         // GET: api/v1/borrowings
         [HttpGet]
-        [Authorize(Roles = "Admin,Librarian")] 
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> GetAllBorrowings([FromQuery] BorrowingParameters parameters)
         {
             var result = await _borrowingService.GetAllBorrowingsAsync(parameters);
@@ -84,7 +84,7 @@
 
         // GET: api/v1/borrowings/{id}
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> GetBorrowingById(Guid id)
         {
             var result = await _borrowingService.GetBorrowingByIdAsync(id);
@@ -93,7 +93,7 @@
 
         // GET: api/v1/borrowings/overdue
         [HttpGet("overdue")]
-        [Authorize(Roles = "Admin,Librarian")]
+        [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Librarian)]
         public async Task<IActionResult> GetOverdueBorrowings([FromQuery] BorrowingParameters parameters)
         {
             var result = await _borrowingService.GetOverdueBorrowingsAsync(parameters);

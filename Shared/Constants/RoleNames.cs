@@ -1,4 +1,4 @@
-﻿namespace LibraryManagement.Domain.Global
+﻿namespace LibraryManagement.Shared.Constants
 {
     public static class RoleNames
     {

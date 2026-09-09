@@ -5,8 +5,12 @@
         private readonly IIdentityManager _identityManager;
         private readonly IMapper _mapper;
 
-        private static readonly string[] KnownRoles = { "Admin", "Librarian", "Member" };
-
+        private static readonly string[] KnownRoles =
+        {
+            RoleNames.Admin,
+            RoleNames.Librarian,
+            RoleNames.Member
+        };
         public UserService(IIdentityManager identityManager, IMapper mapper)
         {
             _identityManager = identityManager;
@@ -82,7 +86,7 @@
 
             var currentUser = _mapper.Map<UserDto>(current.Value);
 
-            var removesAdmin = currentUser.Roles.Contains("Admin") && !rolesDto.Roles.Contains("Admin");
+            var removesAdmin = currentUser.Roles.Contains(RoleNames.Admin) && !rolesDto.Roles.Contains(RoleNames.Admin);
             if (removesAdmin && await IsLastActiveAdminAsync(currentUser))
                 return Result<UserDto>.Failure(
                     Error.Conflict("User.LastAdmin", "The last active administrator cannot lose the Admin role."));

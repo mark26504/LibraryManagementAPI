@@ -35,8 +35,6 @@ global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
 global using LibraryManagement.Services.Implementations.BorrowingRecords;
 global using LibraryManagement.Domain.Contracts.BorrowingParamters;
 global using LibraryManagement.Domain.Enums;
-
-
-
-
+global using LibraryManagement.Shared.Constants;
+global using LibraryManagement.Domain.Global;
 
