@@ -2,7 +2,7 @@
 {
     [ApiController]
     [Route("api/v1/auth")]
-    public class AuthenticationController : ControllerBase
+    public class AuthenticationController : ApiControllerBase
     {
         private const string RefreshTokenCookieName = "refreshToken";
 
@@ -17,108 +17,82 @@
             _configuration = configuration;
         }
 
+        // POST: api/v1/auth/register → 204 No Content per contract section 4
         [HttpPost("register")]
         public async Task<IActionResult> Register(
             [FromBody] UserRegistrationDto registrationDto)
         {
-            var result =
-                await _authenticationService.RegisterUserAsync(
-                    registrationDto);
-
-            if (result.IsFailure)
-                return BadRequest(result.Error);
-
-            return Ok();
+            var result = await _authenticationService.RegisterUserAsync(registrationDto);
+            return result.IsSuccess ? NoContent() : Failure(result);
         }
 
+        // POST: api/v1/auth/login
         [HttpPost("login")]
         public async Task<IActionResult> Login(
             [FromBody] UserLoginDto loginDto)
         {
-            var result =
-                await _authenticationService.LoginAsync(loginDto);
-
+            var result = await _authenticationService.LoginAsync(loginDto);
             if (result.IsFailure)
-                return BadRequest(result.Error);
+                return Failure(result);
 
-            SetRefreshTokenCookie(
-                result.Value.RefreshToken);
-
+            SetRefreshTokenCookie(result.Value.RefreshToken);
             return Ok(result.Value.Response);
         }
 
+        // POST: api/v1/auth/refresh-token  (body: {})
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken()
         {
-            if (!Request.Cookies.TryGetValue(
-                    RefreshTokenCookieName,
-                    out var refreshToken) ||
+            if (!Request.Cookies.TryGetValue(RefreshTokenCookieName, out var refreshToken) ||
                 string.IsNullOrWhiteSpace(refreshToken))
             {
-                return Unauthorized();
+                return Failure(Result.Failure(
+                    Error.Unauthorized("Authentication.NoRefreshToken", "No refresh token found in cookies.")));
             }
 
-            var result =
-                await _authenticationService.RefreshTokenAsync(
-                    refreshToken);
-
+            var result = await _authenticationService.RefreshTokenAsync(refreshToken);
             if (result.IsFailure)
-                return Unauthorized(result.Error);
+                return Failure(result);
 
-            SetRefreshTokenCookie(
-                result.Value.RefreshToken);
-
+            SetRefreshTokenCookie(result.Value.RefreshToken);
             return Ok(result.Value.Response);
         }
 
+        // POST: api/v1/auth/revoke-token  (body: {})
         [HttpPost("revoke-token")]
         public async Task<IActionResult> RevokeToken()
         {
-            if (!Request.Cookies.TryGetValue(
-                    RefreshTokenCookieName,
-                    out var refreshToken) ||
+            if (!Request.Cookies.TryGetValue(RefreshTokenCookieName, out var refreshToken) ||
                 string.IsNullOrWhiteSpace(refreshToken))
             {
-                return BadRequest(
-                    "No refresh token found in cookies.");
+                return Failure(Result.Failure(
+                    Error.Unauthorized("Authentication.NoRefreshToken", "No refresh token found in cookies.")));
             }
 
-            var result =
-                await _authenticationService.RevokeTokenAsync(
-                    refreshToken);
-
+            var result = await _authenticationService.RevokeTokenAsync(refreshToken);
             if (result.IsFailure)
-                return BadRequest(result.Error);
+                return Failure(result);
 
             DeleteRefreshTokenCookie();
-
             return Ok();
         }
 
         #region Cookie Helpers
 
-        private void SetRefreshTokenCookie(
-            string refreshToken)
+        private void SetRefreshTokenCookie(string refreshToken)
         {
-            var expirationDays =
-                _configuration.GetValue<int>(
-                    "Jwt:RefreshTokenExpirationDays");
+            var expirationDays = _configuration.GetValue<int>("Jwt:RefreshTokenExpirationDays");
 
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.None,
-                Expires = DateTime.UtcNow.AddDays(
-                    expirationDays),
-
+                Expires = DateTime.UtcNow.AddDays(expirationDays),
                 Path = "/api/v1/auth"
             };
 
-            Response.Cookies.Append(
-                RefreshTokenCookieName,
-                refreshToken,
-                cookieOptions);
+            Response.Cookies.Append(RefreshTokenCookieName, refreshToken, cookieOptions);
         }
 
         private void DeleteRefreshTokenCookie()
@@ -131,9 +105,7 @@
                 Path = "/api/v1/auth"
             };
 
-            Response.Cookies.Delete(
-                RefreshTokenCookieName,
-                cookieOptions);
+            Response.Cookies.Delete(RefreshTokenCookieName, cookieOptions);
         }
 
         #endregion
