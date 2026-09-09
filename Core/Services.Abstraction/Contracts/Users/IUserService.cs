@@ -6,8 +6,8 @@ namespace LibraryManagement.Services.Abstraction.Contracts.Users
     {
         Task<Result<PagedResponse<UserDto>>> GetAllUsersAsync(UserQueryParametersDto queryParameters);
         Task<Result<UserDto>> GetUserByIdAsync(string userId);
-        Task<Result> UpdateUserStatusAsync(string userId, UpdateUserStatusDto statusDto);
-        Task<Result> UpdateUserRolesAsync(string userId, UpdateUserRolesDto rolesDto);
-        Task<Result> UpdateUserProfileAsync(string userId, UpdateProfileDto profileDto);
+        Task<Result<UserDto>> UpdateUserStatusAsync(string userId, UpdateUserStatusDto statusDto);
+        Task<Result<UserDto>> UpdateUserRolesAsync(string actorId, string userId, UpdateUserRolesDto rolesDto);
+        Task<Result<UserDto>> UpdateUserProfileAsync(string userId, UpdateProfileDto profileDto);
     }
 }
