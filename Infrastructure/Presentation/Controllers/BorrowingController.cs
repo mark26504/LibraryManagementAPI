@@ -3,7 +3,7 @@
     [ApiController]
     [Route("api/v1/borrowings")]
     [Authorize]
-    public class BorrowingController : ControllerBase
+    public class BorrowingController : ApiControllerBase 
     {
         private readonly IBorrowingService _borrowingService;
 
@@ -25,11 +25,11 @@
             if (result.IsSuccess)
                 return Ok(result.Value);
 
-            return BadRequest(result.Error);
+            return Failure(result); 
         }
 
-        // PUT: api/borrowing/{id}/return
-        [HttpPut("{id:guid}/return")]
+        // POST: api/v1/borrowings/{id}/return
+        [HttpPost("{id:guid}/return")]
         public async Task<IActionResult> ReturnBook(Guid id)
         {
             var userId = User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -37,16 +37,15 @@
                 return Unauthorized();
 
             bool isStaff = User.IsInRole("Admin") || User.IsInRole("Librarian");
-
             var result = await _borrowingService.ReturnBookAsync(id, userId, isStaff);
 
             if (result.IsSuccess)
                 return Ok(result.Value);
 
-            return BadRequest(result.Error);
+            return Failure(result);
         }
 
-        // GET: api/borrowing/my
+        // GET: api/v1/borrowings/my
         [HttpGet("my")]
         public async Task<IActionResult> GetMyBorrowings([FromQuery] BorrowingParameters parameters)
         {
@@ -55,11 +54,10 @@
                 return Unauthorized();
 
             var result = await _borrowingService.GetMyBorrowingsAsync(userId, parameters);
-
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        // GET: api/borrowing/my/{id}
+        // GET: api/v1/borrowings/my/{id}
         [HttpGet("my/{id:guid}")]
         public async Task<IActionResult> GetMyBorrowingById(Guid id)
         {
@@ -68,45 +66,38 @@
                 return Unauthorized();
 
             var result = await _borrowingService.GetMyBorrowingByIdAsync(id, userId);
-
-            return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
-
 
         // ==========================================
         // STAFF OPERATIONS
         // ==========================================
 
-        // GET: api/borrowing
+        // GET: api/v1/borrowings
         [HttpGet]
-        [Authorize(Roles = "Admin, Librarian")] 
+        [Authorize(Roles = "Admin,Librarian")] 
         public async Task<IActionResult> GetAllBorrowings([FromQuery] BorrowingParameters parameters)
         {
             var result = await _borrowingService.GetAllBorrowingsAsync(parameters);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        // GET: api/borrowing/{id}
+        // GET: api/v1/borrowings/{id}
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin, Librarian")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> GetBorrowingById(Guid id)
         {
             var result = await _borrowingService.GetBorrowingByIdAsync(id);
-            return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
 
-        // GET: api/borrowing/overdue
+        // GET: api/v1/borrowings/overdue
         [HttpGet("overdue")]
-        [Authorize(Roles = "Admin, Librarian")]
+        [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> GetOverdueBorrowings([FromQuery] BorrowingParameters parameters)
         {
             var result = await _borrowingService.GetOverdueBorrowingsAsync(parameters);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+            return result.IsSuccess ? Ok(result.Value) : Failure(result);
         }
-
-        //[Authorize]
-        //[HttpGet("debug/claims")]
-        //public IActionResult DebugClaims()
-        //    => Ok(User.Claims.Select(c => new { c.Type, c.Value }));
     }
 }

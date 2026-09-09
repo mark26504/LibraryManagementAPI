@@ -33,6 +33,9 @@ global using LibraryManagement.Services.Implementations.Common;
 global using LibraryManagement.Shared.Dtos.BorrowingRecords;
 global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
 global using LibraryManagement.Services.Implementations.BorrowingRecords;
+global using LibraryManagement.Domain.Contracts.BorrowingParamters;
+global using LibraryManagement.Domain.Enums;
+
 
 
 

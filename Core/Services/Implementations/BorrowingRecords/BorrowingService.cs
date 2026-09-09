@@ -1,7 +1,4 @@
-﻿using LibraryManagement.Domain.Contracts.BorrowingParamters;
-using LibraryManagement.Domain.Enums;
-
-namespace LibraryManagement.Services.Implementations.BorrowingRecords
+﻿namespace LibraryManagement.Services.Implementations.BorrowingRecords
 {
     internal sealed class BorrowingService : IBorrowingService
     {
@@ -21,23 +18,23 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
 
             // Validation
             if (book == null || !book.IsActive)
-                return Result<BorrowingResponse>.Failure
-                    (new Error("Book.NotFound", "The requested book does not exist or is not available for borrowing."));
-            
+                return Result<BorrowingResponse>.Failure(
+                    Error.NotFound("Book.NotFound", "The requested book does not exist or is not available for borrowing."));
+
             if (book.AvailableCopies <= 0)
-                return Result<BorrowingResponse>.Failure
-                    (new Error("Book.NotAvailable", "The requested book is not available for borrowing."));
-            
+                return Result<BorrowingResponse>.Failure(
+                    Error.Conflict("Book.NotAvailable", "The requested book is not available for borrowing."));
+
             // Bussiness Rule
             var userBorrowings = await _unitOfWork.Borrowings.CountActiveBorrowingsAsync(userId, false);
             if (userBorrowings >= 5)
-                return Result<BorrowingResponse>.Failure
-                    (new Error("Borrowing.LimitExceeded", "You have reached the maximum limit of 5 active borrowings."));
+                return Result<BorrowingResponse>.Failure(
+                    Error.Conflict("Borrowing.LimitExceeded", "You have reached the maximum limit of 5 active borrowings."));
 
             var duplicatedBorrowing = await _unitOfWork.Borrowings.HasActiveBorrowingForBookAsync(userId, book.Id);
             if (duplicatedBorrowing)
-                return Result<BorrowingResponse>.Failure
-                    (new Error("Borrowing.Duplicate", "You have already borrowed this book."));
+                return Result<BorrowingResponse>.Failure(
+                    Error.Conflict("Borrowing.Duplicate", "You have already borrowed this book."));
 
             // Create Borrowing Record
             var borrowing = new BorrowingRecord
@@ -54,12 +51,12 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
 
             try
             {
-               await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
             }
             catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
             {
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Book.ConcurrencyConflict", "The book was borrowed by another user. Please try again."));
+                    Error.Conflict("Book.ConcurrencyConflict", "The book was borrowed by another user. Please try again."));
             }
             return Result<BorrowingResponse>.Success(_mapper.Map<BorrowingResponse>(borrowing));
         }
@@ -69,15 +66,15 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
             var borrowing = await _unitOfWork.Borrowings.GetBorrowingByIdAsync(id, true);
             if (borrowing == null)
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.NotFound", "The requested borrowing does not exist."));
-            
-            if(!isStaff && userId != borrowing.UserId)
+                    Error.NotFound("Borrowing.NotFound", "The requested borrowing does not exist."));
+
+            if (!isStaff && userId != borrowing.UserId)
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.Unauthorized", "You cannot return a book borrowed by another member."));
+                    Error.Forbidden("Borrowing.Forbidden", "You cannot return a book borrowed by another member."));
 
             if (borrowing.ReturnedAt != null)
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.AlreadyReturned", "This book has already been returned."));
+                    Error.Conflict("Borrowing.AlreadyReturned", "This book has already been returned."));
 
             // Update the borrowing record
             borrowing.ReturnedAt = DateTime.UtcNow;
@@ -92,7 +89,7 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
             catch (Exception ex) when (ex.GetType().Name == "DbUpdateConcurrencyException")
             {
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.ConcurrencyConflict", "The borrowing record was modified by another user. Please try again."));
+                    Error.Conflict("Borrowing.ConcurrencyConflict", "The borrowing record was modified by another user. Please try again."));
             }
 
             return Result<BorrowingResponse>.Success(_mapper.Map<BorrowingResponse>(borrowing));
@@ -100,16 +97,10 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
 
         public async Task<Result<PagedResponse<BorrowingResponse>>> GetMyBorrowingsAsync(string userId, BorrowingParameters parameters)
         {
-            // 1. Enforce member isolation
             parameters.UserId = userId;
-
-            // 2. Map to Domain
             var queryParams = MapToDomainParameters(parameters);
-
-            // 3. Execute
             var (items, totalCount) = await _unitOfWork.Borrowings.GetBorrowingsAsync(queryParams, false);
 
-            // 4. Map & Return
             var mappedItems = _mapper.Map<IEnumerable<BorrowingResponse>>(items);
             var pagedResponse = new PagedResponse<BorrowingResponse>(mappedItems, totalCount, parameters.PageNumber, parameters.PageSize);
 
@@ -123,12 +114,11 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
             if (borrowing == null || borrowing.UserId != userId)
             {
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.NotFound", "The requested borrowing does not exist."));
+                    Error.NotFound("Borrowing.NotFound", "The requested borrowing does not exist."));
             }
 
             return Result<BorrowingResponse>.Success(_mapper.Map<BorrowingResponse>(borrowing));
         }
-        
 
         // Staff Operations
         public async Task<Result<PagedResponse<BorrowingResponse>>> GetAllBorrowingsAsync(BorrowingParameters parameters)
@@ -149,7 +139,7 @@ namespace LibraryManagement.Services.Implementations.BorrowingRecords
             if (borrowing == null)
             {
                 return Result<BorrowingResponse>.Failure(
-                    new Error("Borrowing.NotFound", "The requested borrowing does not exist."));
+                    Error.NotFound("Borrowing.NotFound", "The requested borrowing does not exist."));
             }
 
             return Result<BorrowingResponse>.Success(_mapper.Map<BorrowingResponse>(borrowing));

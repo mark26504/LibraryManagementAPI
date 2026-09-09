@@ -15,6 +15,7 @@ global using LibraryManagement.Services.Abstraction.Contracts.Books;
 global using LibraryManagement.Shared.Dtos.Books;
 global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
 global using LibraryManagement.Shared.Dtos.BorrowingRecords;
+global using LibraryManagement.Presentation.Controllers.Base;
 
 
 
