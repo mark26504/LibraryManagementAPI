@@ -95,7 +95,15 @@
                 return Result.Failure(
                     Error.NotFound("Book.NotFound", "Book not found."));
 
-            if (request.AuthorIds == null || !request.AuthorIds.Any())
+            if (request.RowVersion is null || request.RowVersion.Length == 0)
+                return Result.Failure(
+                    Error.Validation("Book.RowVersionRequired", "rowVersion is required to update a book."));
+
+            if (!book.RowVersion.SequenceEqual(request.RowVersion))
+                return Result.Failure(
+                    Error.Conflict("Book.ConcurrencyConflict", "The book was modified by another user. Please reload and try again."));
+
+            if (request.AuthorIds is null || !request.AuthorIds.Any())
                 return Result.Failure(
                     Error.Validation("Book.AuthorsRequired", "At least one author is required."));
 
@@ -112,15 +120,14 @@
                         Error.NotFound("Author.NotFound", "One of the selected authors does not exist."));
             }
 
-            _mapper.Map(request, book);
-            book.ISBN = NormalizeIsbn(book.ISBN);
-
-            // Inventory invariant: available copies can never go below borrowed copies
             var borrowedCopies = book.TotalCopies - book.AvailableCopies;
-            if (book.TotalCopies < borrowedCopies)
+
+            if (request.TotalCopies < borrowedCopies)
                 return Result.Failure(
                     Error.Conflict("Book.InventoryConflict", "Total copies cannot be lower than the number of currently borrowed copies."));
 
+            _mapper.Map(request, book);
+            book.ISBN = NormalizeIsbn(book.ISBN);
             book.AvailableCopies = book.TotalCopies - borrowedCopies;
 
             var requestedAuthorIds = request.AuthorIds
@@ -140,10 +147,7 @@
                 .Select(ba => ba.AuthorId)
                 .ToHashSet();
 
-            var authorIdsToAdd = requestedAuthorIds
-                    .Where(authorId => !existingAuthorIds.Contains(authorId));
-
-            foreach (var authorId in authorIdsToAdd)
+            foreach (var authorId in requestedAuthorIds.Where(aid => !existingAuthorIds.Contains(aid)))
             {
                 book.BookAuthors.Add(new BookAuthor
                 {
@@ -171,7 +175,6 @@
 
             return Result.Success();
         }
-
         public async Task<Result> DeleteBookAsync(Guid id)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, true);
