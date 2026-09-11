@@ -118,21 +118,27 @@
             }
 
             // Sorting
-            if (string.IsNullOrEmpty(queryParameters.SortBy))
-                query = query.OrderBy(u => u.CreatedAt);
-            if (!string.IsNullOrEmpty(queryParameters.SortBy))
-            { 
-                var sortBy = queryParameters.SortBy.ToLower();
-                var sortByDirection = queryParameters.SortDirection?.ToLower() ?? "asc";
+            var descending = string.Equals(
+                queryParameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-                query = sortBy switch
-                {
-                    "firstname" => sortByDirection == "desc" ? query.OrderByDescending(u => u.FirstName) : query.OrderBy(u => u.FirstName),
-                    "lastname" => sortByDirection == "desc" ? query.OrderByDescending(u => u.LastName) : query.OrderBy(u => u.LastName),
-                    "email" => sortByDirection == "desc" ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
-                    _ => query.OrderBy(u => u.Id).ThenBy(u => u.Email)
-                };
-            }
+            query = (queryParameters.SortBy ?? "createdat").ToLower() switch
+            {
+                "firstname" => descending
+                    ? query.OrderByDescending(u => u.FirstName)
+                    : query.OrderBy(u => u.FirstName),
+
+                "lastname" => descending
+                    ? query.OrderByDescending(u => u.LastName)
+                    : query.OrderBy(u => u.LastName),
+
+                "email" => descending
+                    ? query.OrderByDescending(u => u.Email)
+                    : query.OrderBy(u => u.Email),
+
+                _ => descending
+                    ? query.OrderByDescending(u => u.CreatedAt)
+                    : query.OrderBy(u => u.CreatedAt),
+            };
 
             // Pagination
             var totalCount = await query.CountAsync();

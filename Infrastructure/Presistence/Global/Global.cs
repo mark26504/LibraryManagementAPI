@@ -31,6 +31,7 @@ global using LibraryManagement.Services.Abstraction.Files;
 global using Microsoft.AspNetCore.Hosting;
 global using LibraryManagement.Persistence.Files;
 global using LibraryManagement.Domain.Contracts.BookParameters;
+global using LibraryManagement.Domain.Contracts.BorrowingParamters;
 
 
 

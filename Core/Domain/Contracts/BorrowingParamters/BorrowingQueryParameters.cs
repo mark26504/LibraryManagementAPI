@@ -10,7 +10,8 @@
             DateTime? DueFrom,
             DateTime? DueTo,
             bool? IsOverdue,
-            string? OrderBy,
+            string? SortBy,
+            string? SortDirection,
             int PageNumber,
             int PageSize
         );

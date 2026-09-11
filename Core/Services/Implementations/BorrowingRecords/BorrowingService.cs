@@ -166,10 +166,10 @@
             return new BorrowingQueryParameters(
                 p.SearchTerm, p.Status, p.UserId, p.BookId,
                 p.BorrowedFrom, p.BorrowedTo, p.DueFrom, p.DueTo,
-                p.IsOverdue, p.OrderBy, p.PageNumber, p.PageSize
+                p.IsOverdue, p.SortBy, p.SortDirection,
+                p.PageNumber, p.PageSize
             );
         }
-
         #endregion
     }
 }

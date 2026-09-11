@@ -1,6 +1,4 @@
-﻿using LibraryManagement.Domain.Contracts.BorrowingParamters;
-
-namespace LibraryManagement.Persistence.Repositories
+﻿namespace LibraryManagement.Persistence.Repositories
 {
     internal sealed class BorrowingRepository : GenericRepository<BorrowingRecord>, IBorrowingRepository
     {
@@ -50,26 +48,23 @@ namespace LibraryManagement.Persistence.Repositories
                 query = query.Where(br => br.DueDate < DateTime.UtcNow && br.ReturnedAt == null);
 
             // Apply ordering
-            if (!string.IsNullOrWhiteSpace(parameters.OrderBy))
+            var descending = string.Equals(
+                parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            query = (parameters.SortBy ?? "borrowedat").ToLower() switch
             {
-                switch (parameters.OrderBy.ToLower())
-                {
-                    case "borrowedat":
-                        query = query.OrderBy(br => br.BorrowedAt);
-                        break;
-                    case "duedate":
-                        query = query.OrderBy(br => br.DueDate);
-                        break;
-                    default:
-                        query = query.OrderByDescending(br => br.BorrowedAt);
-                        break;
-                }
-            }
-            else
-            {
-                // Default ordering
-                query = query.OrderByDescending(br => br.BorrowedAt);
-            }
+                "duedate" => descending
+                    ? query.OrderByDescending(br => br.DueDate)
+                    : query.OrderBy(br => br.DueDate),
+
+                "status" => descending
+                    ? query.OrderByDescending(br => br.Status)
+                    : query.OrderBy(br => br.Status),
+
+                _ => descending
+                    ? query.OrderByDescending(br => br.BorrowedAt)
+                    : query.OrderBy(br => br.BorrowedAt),
+            };
 
             var totalCount = await query.CountAsync();
             
