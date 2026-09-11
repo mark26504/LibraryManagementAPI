@@ -15,13 +15,9 @@
 
         public async Task<Result<PagedResponse<BookResponse>>> GetAllBooksAsync(BookParameters parameters)
         {
-            var books = await _unitOfWork.Books.GetAllBooksAsync
-                (parameters.PageNumber,
-                 parameters.PageSize,
-                 parameters.SearchTerm,
-                 parameters.CategoryId,
-                 parameters.OrderBy,
-                 false);
+            var queryParams = MapToDomainParameters(parameters);
+
+            var books = await _unitOfWork.Books.GetAllBooksAsync(queryParams, false);
 
             var bookResponse = _mapper.Map<IEnumerable<BookResponse>>(books.Books);
             var pagedResponse = new PagedResponse<BookResponse>
@@ -34,7 +30,6 @@
 
             return Result<PagedResponse<BookResponse>>.Success(pagedResponse);
         }
-
         public async Task<Result<BookResponse>> GetBookByIdAsync(Guid id)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, false);
@@ -225,6 +220,18 @@
         private static string NormalizeIsbn(string isbn)
             => new string(isbn.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
+        private static BookQueryParameters MapToDomainParameters(BookParameters p)
+            => new(
+                p.PageNumber,
+                p.PageSize,
+                p.SearchTerm,
+                string.IsNullOrWhiteSpace(p.Isbn) ? null : NormalizeIsbn(p.Isbn),
+                p.CategoryId,
+                p.AuthorId,
+                p.IsAvailable,
+                p.IsActive,
+                p.SortBy,
+                p.SortDirection);
         #endregion
     }
 }

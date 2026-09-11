@@ -4,32 +4,67 @@
     {
         public BookRepository(ApplicationDbContext dbContext) : base(dbContext) { }
 
-        public async Task<(IEnumerable<Book> Books, int TotalCount)> GetAllBooksAsync
-            (int pageNumber, int pageSize, string? searchTerm, Guid? categoryId, string? orderBy, bool trackChanges)
+        public async Task<(IEnumerable<Book> Books, int TotalCount)> GetAllBooksAsync(
+                                                                        BookQueryParameters parameters,
+                                                                        bool trackChanges)
         {
             var query = FindAll(trackChanges);
 
-            if (!string.IsNullOrEmpty(searchTerm))
-                query = query.Where(b => b.Title.Contains(searchTerm) || b.Description.Contains(searchTerm));
+            if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            {
+                var search = parameters.SearchTerm.Trim();
 
-            if (categoryId.HasValue)
-                query = query.Where(b => b.CategoryId == categoryId);
+                query = query.Where(b =>
+                    b.Title.Contains(search) ||
+                    b.ISBN.Contains(search) ||
+                    b.BookAuthors.Any(ba => ba.Author.Name.Contains(search)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.Isbn))
+                query = query.Where(b => b.ISBN == parameters.Isbn);
+
+            if (parameters.CategoryId.HasValue)
+                query = query.Where(b => b.CategoryId == parameters.CategoryId);
+
+            if (parameters.AuthorId.HasValue)
+                query = query.Where(b => b.BookAuthors.Any(ba => ba.AuthorId == parameters.AuthorId));
+
+            if (parameters.IsAvailable == true)
+                query = query.Where(b => b.AvailableCopies > 0);
+            else if (parameters.IsAvailable == false)
+                query = query.Where(b => b.AvailableCopies <= 0);
+
+            if (parameters.IsActive.HasValue)
+                query = query.Where(b => b.IsActive == parameters.IsActive);
 
             var totalCount = await query.CountAsync();
 
-            if (!string.IsNullOrEmpty(orderBy))
-            {
-                query = orderBy.ToLower() switch
-                {
-                    "title" => query.OrderBy(b => b.Title),
-                    "title_desc" => query.OrderByDescending(b => b.Title),
-                    "publicationdate" => query.OrderBy(b => b.PublicationDate),
-                    "publicationdate_desc" => query.OrderByDescending(b => b.PublicationDate),
-                    _ => query
-                };
-            }
+            var descending = string.Equals(
+                parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            var books = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+            query = (parameters.SortBy ?? "title").ToLower() switch
+            {
+                "publicationdate" => descending
+                    ? query.OrderByDescending(b => b.PublicationDate)
+                    : query.OrderBy(b => b.PublicationDate),
+
+                "createdat" => descending
+                    ? query.OrderByDescending(b => b.CreatedAt)
+                    : query.OrderBy(b => b.CreatedAt),
+
+                _ => descending
+                    ? query.OrderByDescending(b => b.Title)
+                    : query.OrderBy(b => b.Title),
+            };
+
+            var books = await query
+                .Include(b => b.Category)
+                .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
+                .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+                .Take(parameters.PageSize)
+                .ToListAsync();
+
             return (books, totalCount);
         }
 

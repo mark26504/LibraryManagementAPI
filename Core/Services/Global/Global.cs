@@ -38,3 +38,5 @@ global using LibraryManagement.Domain.Global;
 global using LibraryManagement.Services.Abstraction.Contracts.Email;
 global using Microsoft.Extensions.Logging;
 global using LibraryManagement.Services.Abstraction.Files;
+global using LibraryManagement.Domain.Contracts.BookParameters;
+
