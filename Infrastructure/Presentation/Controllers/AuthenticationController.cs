@@ -18,6 +18,7 @@
         }
 
         // POST: api/v1/auth/register → 204 No Content per contract section 4
+        [EnableRateLimiting(RateLimitPolicyNames.Auth)]
         [HttpPost("register")]
         public async Task<IActionResult> Register(
             [FromBody] UserRegistrationDto registrationDto)
@@ -27,6 +28,7 @@
         }
 
         // POST: api/v1/auth/login
+        [EnableRateLimiting(RateLimitPolicyNames.Auth)]
         [HttpPost("login")]
         public async Task<IActionResult> Login(
             [FromBody] UserLoginDto loginDto)
@@ -78,6 +80,7 @@
         }
 
         // POST: api/v1/auth/send-email-confirmation
+        [EnableRateLimiting(RateLimitPolicyNames.Auth)]
         [HttpPost("send-email-confirmation")]
         public async Task<IActionResult> SendEmailConfirmation(
             [FromBody] SendEmailConfirmationRequest request)
@@ -96,6 +99,7 @@
         }
 
         // POST: api/v1/auth/forgot-password
+        [EnableRateLimiting(RateLimitPolicyNames.Auth)]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(
             [FromBody] ForgotPasswordRequest request)
@@ -105,6 +109,7 @@
         }
 
         // POST: api/v1/auth/reset-password
+        [EnableRateLimiting(RateLimitPolicyNames.Auth)]
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(
             [FromBody] ResetPasswordRequest request)

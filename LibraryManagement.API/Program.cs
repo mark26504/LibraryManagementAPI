@@ -16,6 +16,19 @@ namespace LibraryManagement.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
             {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Library Management API",
+                    Version = "v1",
+                    Description = """
+                        JWT Bearer access token in the Authorization header.
+                        The refresh token travels only in a Secure HttpOnly cookie named 'refreshToken'
+                        scoped to /api/v1/auth. The refresh and revoke endpoints expect an empty body ({})
+                        and read the cookie automatically. Swagger cannot send HttpOnly cookies,
+                        so verify refresh/revoke through the Angular client or Postman with a cookie jar.
+                        """
+                });
+
                 options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
@@ -41,12 +54,14 @@ namespace LibraryManagement.API
             // JWT Authentication + Authorization
             builder.Services.AddJwtAuthentication(builder.Configuration);
 
+            builder.AddApiRateLimiting();
+
+            builder.Services.AddHealthChecks();
+
             var app = builder.Build();
 
-            // 1. Global Exception Handling
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-            // 2. Serilog Request Logging
             app.UseSerilogRequestLogging(options =>
             {
                 options.MessageTemplate =
@@ -66,29 +81,20 @@ namespace LibraryManagement.API
                 app.UseSwaggerUI();
             }
 
-            // 3. HTTPS Redirection
             app.UseHttpsRedirection();
 
-            // 4. Static Files 
             app.UseStaticFiles();
 
-            // 5. CORS
             app.UseCors("AngularClient");
 
-            // 6. Rate Limiting
-            // app.UseRateLimiter();
+            app.UseRateLimiter();
 
-            // 7. Authentication
             app.UseAuthentication();
-
-            // 8. Authorization
             app.UseAuthorization();
 
-            // 9. Mapped Controllers
             app.MapControllers();
 
-            // 10. Health Checks 
-            // app.MapHealthChecks("/health");
+            app.MapHealthChecks("/health");
 
             app.Run();
         }
