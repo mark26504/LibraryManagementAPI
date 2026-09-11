@@ -209,7 +209,7 @@
             if (!string.IsNullOrEmpty(book.CoverImageUrl))
                 _storageService.DeleteFile(book.CoverImageUrl);
 
-            var filePath = await _storageService.SaveFileAsync(fileStream, extention, "images/books");
+            var filePath = await _storageService.SaveFileAsync(fileStream, extention, "uploads/books");
 
             book.CoverImageUrl = filePath;
             book.UpdatedAt = DateTime.UtcNow;

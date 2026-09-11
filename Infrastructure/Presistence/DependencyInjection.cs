@@ -35,10 +35,14 @@
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IIdentityManager, IdentityManager>();
             services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+
+
+            services.Configure<FileStorageOptions>(
+                    configuration.GetSection(FileStorageOptions.SectionName));
             services.AddScoped<IFileStorageService, FileStorageService>();
+
             services.Configure<EmailOptions>(
                 configuration.GetSection(EmailOptions.SectionName));
-
             services.AddScoped<IEmailService, MailKitEmailService>();
             return services;
         }
