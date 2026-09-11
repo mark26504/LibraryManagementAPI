@@ -28,8 +28,6 @@ global using LibraryManagement.Services.Implementations.Categories;
 global using LibraryManagement.Services.Abstraction.Contracts.Books;
 global using LibraryManagement.Services.Implementations.Books;
 global using LibraryManagement.Shared.Dtos.Books;
-global using LibraryManagement.Services.Abstraction.Contracts.Common;
-global using LibraryManagement.Services.Implementations.Common;
 global using LibraryManagement.Shared.Dtos.BorrowingRecords;
 global using LibraryManagement.Services.Abstraction.Contracts.BorrowingRecords;
 global using LibraryManagement.Services.Implementations.BorrowingRecords;
@@ -39,5 +37,4 @@ global using LibraryManagement.Shared.Constants;
 global using LibraryManagement.Domain.Global;
 global using LibraryManagement.Services.Abstraction.Contracts.Email;
 global using Microsoft.Extensions.Logging;
-
-
+global using LibraryManagement.Services.Abstraction.Files;

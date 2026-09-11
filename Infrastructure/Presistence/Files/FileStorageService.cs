@@ -1,7 +1,4 @@
-﻿using LibraryManagement.Services.Abstraction.Contracts.Common;
-using Microsoft.AspNetCore.Hosting;
-
-namespace LibraryManagement.Services.Implementations.Common
+﻿namespace LibraryManagement.Persistence.Files
 {
     internal sealed class FileStorageService : IFileStorageService
     {
@@ -22,7 +19,7 @@ namespace LibraryManagement.Services.Implementations.Common
 
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
-            
+
             var physicalFilePath = Path.Combine(folderPath, fileName);
 
             await using var stream = new FileStream(physicalFilePath, FileMode.Create);
@@ -38,6 +35,7 @@ namespace LibraryManagement.Services.Implementations.Common
                 return;
             File.Delete(filePath);
         }
+
 
     }
 }

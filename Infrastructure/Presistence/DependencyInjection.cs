@@ -35,7 +35,7 @@
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IIdentityManager, IdentityManager>();
             services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
-
+            services.AddScoped<IFileStorageService, FileStorageService>();
             services.Configure<EmailOptions>(
                 configuration.GetSection(EmailOptions.SectionName));
 

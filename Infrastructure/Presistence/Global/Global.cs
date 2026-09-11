@@ -27,5 +27,10 @@ global using MimeKit;
 global using LibraryManagement.Persistence.Email;
 global using LibraryManagement.Persistence.Identity.Managers;
 global using LibraryManagement.Persistence.Identity.Store;
+global using LibraryManagement.Services.Abstraction.Files;
+global using Microsoft.AspNetCore.Hosting;
+global using LibraryManagement.Persistence.Files;
+
+
 
 

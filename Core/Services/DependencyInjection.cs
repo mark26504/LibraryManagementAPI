@@ -11,7 +11,6 @@
             services.AddScoped<IAuthorService, AuthorService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IBookService, BookService>();
-            services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IBorrowingService, BorrowingService>();
 
             services.AddAutoMapper(

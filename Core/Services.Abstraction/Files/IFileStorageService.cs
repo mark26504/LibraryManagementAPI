@@ -1,4 +1,4 @@
-﻿namespace LibraryManagement.Services.Abstraction.Contracts.Common
+﻿namespace LibraryManagement.Services.Abstraction.Files
 {
     public interface IFileStorageService
     {
