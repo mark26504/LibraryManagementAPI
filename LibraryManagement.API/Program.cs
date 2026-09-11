@@ -11,7 +11,8 @@ namespace LibraryManagement.API
             builder.Services
                 .AddControllers()
                 .AddApplicationPart(
-                    typeof(AuthenticationController).Assembly);
+                    typeof(AuthenticationController).Assembly)
+                    .AddFrozenValidationProblemDetails(); ;
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
