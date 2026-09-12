@@ -70,9 +70,10 @@
 
         public async Task<Book?> GetBookByIdAsync(Guid id, bool trackChanges)
             => await FindByCondition(b => b.Id == id, trackChanges)
+                .Include(b => b.Category)
                 .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
                 .FirstOrDefaultAsync();
-
         public async Task<bool> HasBorrowingRelationsAsync(Guid id)
             => await FindByCondition(b => b.Id == id, false)
                 .AnyAsync(b => b.BorrowingRecords.Any());

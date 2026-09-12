@@ -47,6 +47,10 @@
                 return Result<BookResponse>.Failure(
                     Error.Validation("Book.AuthorsRequired", "At least one author is required."));
 
+            if (request.TotalCopies < 1)
+                return Result<BookResponse>.Failure(
+                    Error.Validation("Book.InvalidCopies", "Total copies must be at least 1."));
+
             var categoryExists = await _unitOfWork.Categories.GetCategoryByIdAsync(request.CategoryId, false) is not null;
             if (!categoryExists)
                 return Result<BookResponse>.Failure(
@@ -57,11 +61,13 @@
                 var authorExists = await _unitOfWork.Authors.GetAuthorByIdAsync(authorId, false) is not null;
                 if (!authorExists)
                     return Result<BookResponse>.Failure(
-                        Error.NotFound("Author.NotFound", $"One of the selected authors does not exist."));
+                        Error.NotFound("Author.NotFound", "One of the selected authors does not exist."));
             }
 
             var book = _mapper.Map<Book>(request);
             book.ISBN = NormalizeIsbn(book.ISBN);
+
+            book.AvailableCopies = book.TotalCopies;
 
             foreach (var authorId in request.AuthorIds.Distinct())
             {
@@ -84,10 +90,10 @@
                     Error.Conflict("Book.DuplicateIsbn", "A book with this ISBN already exists."));
             }
 
-            var bookResponse = _mapper.Map<BookResponse>(book);
+            var createdBook = await _unitOfWork.Books.GetBookByIdAsync(book.Id, false);
+            var bookResponse = _mapper.Map<BookResponse>(createdBook!);
             return Result<BookResponse>.Success(bookResponse);
         }
-
         public async Task<Result> UpdateBookAsync(Guid id, UpdateBookRequest request)
         {
             var book = await _unitOfWork.Books.GetBookByIdAsync(id, true);
