@@ -64,16 +64,20 @@
                 HtmlBody = htmlBody
             }.ToMessageBody();
 
-            var socketOptions = _options.Port == 465
-                ? SecureSocketOptions.SslOnConnect
-                : SecureSocketOptions.StartTls;
-
+            var socketOptions = _options.UseLocalSmtp
+                ? SecureSocketOptions.None
+                : _options.Port == 465
+                    ? SecureSocketOptions.SslOnConnect
+                    : SecureSocketOptions.StartTls;
             try
             {
                 using var client = new SmtpClient();
 
                 await client.ConnectAsync(_options.SmtpServer, _options.Port, socketOptions);
-                await client.AuthenticateAsync(_options.Username, _options.Password);
+                if (!_options.UseLocalSmtp)
+                {
+                    await client.AuthenticateAsync(_options.Username, _options.Password);
+                }
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
 

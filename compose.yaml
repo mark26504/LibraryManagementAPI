@@ -1,0 +1,82 @@
+services:
+
+  library-api:
+    container_name: library-api-test
+    image: librarymanagement-api:dev
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    env_file:
+      - .env
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+    volumes:
+      - library-book-images:/app/wwwroot/uploads/books
+      - library-dp-keys:/root/.aspnet/DataProtection-Keys
+
+    depends_on:
+      library-sqlserver:
+        condition: service_healthy
+
+    networks:
+      - library-network
+
+
+  library-sqlserver:
+    container_name: library-sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
+
+    ports:
+      - "127.0.0.1:14333:1433"
+
+    env_file:
+      - .env.sqlserver
+
+    volumes:
+      - library-sql-data:/var/opt/mssql
+
+    networks:
+      - library-network
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD"
+          /opt/mssql-tools18/bin/sqlcmd
+          -S localhost -U sa -C -b
+          -Q "SELECT 1" -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mailpit:
+    container_name: library-mailpit
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks:
+      - library-network
+
+networks:
+  library-network:
+    external: true
+
+
+volumes:
+  library-sql-data:
+    external: true
+
+  library-book-images:
+    name: library-book-images
+
+  library-dp-keys:
+    name: library-dp-keys

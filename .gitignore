@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Docker Environment Secrets
+.env
+.env.*
+
+# Allow Environment Templates
+!.env.example
+!.env.sqlserver.example
+
+# Ignore Local Uploaded Files
+**/wwwroot/uploads/

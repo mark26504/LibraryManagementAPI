@@ -11,6 +11,6 @@
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string FrontendBaseUrl { get; set; } = "http://localhost:4200";
-
+        public bool UseLocalSmtp { get; set; } = false;
     }
 }
