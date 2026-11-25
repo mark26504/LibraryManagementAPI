@@ -4,6 +4,19 @@ A production-oriented library management backend built with ASP.NET Core (.NET 1
 
 The application supports containerized local development using Docker and Docker Compose, with SQL Server, persistent storage, and Mailpit for email testing.
 
+## Live Demo
+
+The Library Management API is publicly deployed on MonsterASP.NET using ASP.NET Core (.NET 10), IIS, and SQL Server 2025.
+
+| Resource | Link |
+|---|---|
+| Live Swagger UI | [Explore the API](https://library-management-api.runasp.net/swagger/index.html) |
+| OpenAPI Specification | [Swagger JSON](https://library-management-api.runasp.net/swagger/v1/swagger.json) |
+| Liveness | [Application Health](https://library-management-api.runasp.net/health) |
+| Readiness | [Database Health](https://library-management-api.runasp.net/health/ready) |
+
+> **Portfolio demo:** The application uses a free hosting plan with limited resources and no uptime guarantee. Email delivery is unavailable in the hosted environment; email confirmation and password reset can be tested locally using Mailpit. Use fictional test data only.
+
 ## Solution Structure
 
 | Project | Responsibility |
@@ -185,7 +198,17 @@ The application has been smoke-tested locally in the Production environment with
 - Successful application startup.
 - Successful liveness and database readiness checks.
 
-Public hosting and deployment verification are pending.
+The public deployment was verified on November 25, 2026:
+
+- Public HTTPS access using a Let's Encrypt certificate and HTTP-to-HTTPS redirection configured at the hosting layer.
+- Framework-dependent Release publishing for .NET 10 and manual deployment over SFTP.
+- Production configuration supplied through hosting environment variables, with separate deployment credentials.
+- SQL Server 2025 database provisioned separately from local development, with both existing EF Core migrations applied and three predefined roles seeded.
+- Live Swagger UI and OpenAPI document available.
+- Application liveness and database readiness endpoints returned `Healthy`.
+- `GET /api/v1/books` smoke test completed successfully.
+
+The hosted deployment runs on IIS, while Docker Compose remains the local development and testing workflow. Hosted email delivery, full hosted regression testing, and automated CI/CD deployment have not been verified or implemented as part of this release.
 
 For production deployment requirements and security guidance, see [Docs/DEPLOYMENT.md](Docs/DEPLOYMENT.md) and [Docs/SECURITY.md](Docs/SECURITY.md).
 
