@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+
 namespace LibraryManagement.API
 {
     public class Program
@@ -49,17 +51,65 @@ namespace LibraryManagement.API
             builder.Services.AddPersistenceServices(
                 builder.Configuration);
 
+            // Configurable Data Protection key storage
+            var keysPath = builder.Configuration["DataProtection:KeysPath"];
+
+            if (!string.IsNullOrWhiteSpace(keysPath))
+            {
+                var fullPath = Path.GetFullPath(
+                    keysPath,
+                    builder.Environment.ContentRootPath);
+
+                Directory.CreateDirectory(fullPath);
+
+                builder.Services.AddDataProtection()
+                    .SetApplicationName("LibraryManagement.API")
+                    .PersistKeysToFileSystem(new DirectoryInfo(fullPath));
+            }
+
+            // SMTP Security - Development-only local SMTP
+            builder.Services.AddOptions<EmailOptions>()
+                .Validate(
+                    options => builder.Environment.IsDevelopment() ||
+                               !options.UseLocalSmtp,
+                    "Local SMTP is only allowed in Development.")
+                .ValidateOnStart();
+
             // Angular CORS
-            builder.Services.AddAngularCorsPolicy();
+            builder.Services.AddAngularCorsPolicy(
+                builder.Configuration,
+                builder.Environment);
 
             // JWT Authentication + Authorization
             builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.AddApiRateLimiting();
 
-            builder.Services.AddHealthChecks();
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders =
+                    ForwardedHeaders.XForwardedFor |
+                    ForwardedHeaders.XForwardedProto;
+
+                options.ForwardLimit = 1;
+
+                var trustedNetworks = builder.Configuration
+                    .GetSection("ReverseProxy:KnownNetworks")
+                    .Get<string[]>() ?? [];
+
+                foreach (var network in trustedNetworks)
+                {
+                    options.KnownIPNetworks.Add(
+                        System.Net.IPNetwork.Parse(network));
+                }
+            });
 
             var app = builder.Build();
+
+            if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+            {
+                app.UseForwardedHeaders();
+            }
 
             app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
@@ -76,7 +126,8 @@ namespace LibraryManagement.API
                 };
             });
 
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() ||
+                builder.Configuration.GetValue<bool>("Swagger:Enabled"))
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
@@ -95,7 +146,17 @@ namespace LibraryManagement.API
 
             app.MapControllers();
 
-            app.MapHealthChecks("/health");
+            // Liveness Health Check
+            app.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                Predicate = _ => false
+            });
+
+            // Readiness Health Check
+            app.MapHealthChecks("/health/ready", new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("ready")
+            });
 
             app.Run();
         }

@@ -33,6 +33,10 @@ If it is already installed, ensure its major version matches EF Core 10.
 
 The Dockerfile uses a multi-stage build. The .NET SDK image restores dependencies and publishes the application in Release configuration. The ASP.NET Core runtime image runs the published application on port 8080.
 
+The runtime container runs as the non-root application user `app` (UID and GID 1654 in the verified image). During the image build, writable directories are prepared for book covers, Data Protection keys, and development logs. Application binaries remain separate from these writable directories.
+
+Serilog writes to the console in all environments and writes rolling log files under `/app/logs` only in Development. Production uses console logging.
+
 ```mermaid
 flowchart TD
     Browser[Browser / Swagger] -->|localhost:8080| API[Library API]
@@ -132,6 +136,8 @@ if (-not (docker volume ls --filter 'name=^library-sql-data$' --format '{{.Name}
 
 Compose creates `library-book-images` and `library-dp-keys` automatically if they do not already exist.
 
+For an existing installation that previously ran the API as root, follow the one-time volume ownership migration in section 7 before starting the API with the new non-root image. A fresh installation does not require this migration.
+
 ## 5. Start SQL Server and Apply Migrations
 
 Validate the Compose configuration without displaying resolved secrets:
@@ -203,9 +209,13 @@ This local-development command passes the connection string to a child process; 
 
 Existing migrations create the application schema and seed the predefined roles. Do not generate a new migration simply to start an existing checkout.
 
+The application now validates its database and JWT settings at startup. If EF Core tooling needs to construct the application host, provide the required local configuration to that process as well; Docker's `env_file` settings are not automatically loaded by host-side `dotnet ef` commands. The migration workflow above has not yet been re-verified from a fresh clone after the new startup validation was introduced.
+
 See [SETUP.md](SETUP.md) for the non-Docker development workflow.
 
 ## 6. Build and Start the Application
+
+For existing installations with root-owned application volumes, complete the ownership migration in section 7 first.
 
 ```powershell
 docker compose up -d --build
@@ -222,6 +232,10 @@ Open the following local addresses:
 
 - Swagger UI: http://localhost:8080/swagger/index.html
 - Mailpit inbox: http://localhost:8025
+- Liveness check: http://localhost:8080/health
+- Readiness check: http://localhost:8080/health/ready
+
+Both health endpoints should return HTTP 200 with `Healthy` when the application is running and the database is reachable. `/health` checks application responsiveness without querying the database. `/health/ready` checks database connectivity through EF Core; it does not validate the complete database schema or all dependencies. An unhealthy database readiness check returns HTTP 503.
 
 Verify database connectivity by executing `GET /api/v1/books` in Swagger. A successful response is expected to return HTTP 200; a fresh database can return an empty collection.
 
@@ -231,7 +245,7 @@ Verify database connectivity by executing `GET /api/v1/books` in Swagger. A succ
 |---|---|---|
 | `library-sql-data` | `/var/opt/mssql` | Database files and SQL Server state |
 | `library-book-images` | `/app/wwwroot/uploads/books` | Uploaded book covers |
-| `library-dp-keys` | `/root/.aspnet/DataProtection-Keys` | ASP.NET Core Data Protection keys |
+| `library-dp-keys` | `/home/app/.aspnet/DataProtection-Keys` | ASP.NET Core Data Protection keys |
 
 These volumes preserve data across container recreation. Data Protection keys are persisted for token-related functionality that depends on ASP.NET Core Data Protection; the JWT signing key is configured separately.
 
@@ -252,6 +266,60 @@ After uploading a cover via Swagger, its returned relative URL can be opened usi
 
 Named volumes are not backups. Mailpit messages are not configured with a dedicated persistent volume in this Compose setup.
 
+### Migrating Existing Volume Permissions
+
+This one-time migration is for existing installations that previously ran the API as root. Updating the Dockerfile does not change the ownership of files already stored in named volumes.
+
+Stop the API and build the updated image:
+
+```powershell
+docker compose stop library-api
+docker compose build library-api
+```
+
+Verify that both application volumes exist before proceeding:
+
+```powershell
+docker volume inspect library-book-images library-dp-keys --format '{{.Name}}'
+```
+
+Both volume names must be listed. If either volume is missing or the command fails, stop and investigate before proceeding.
+
+Update the volume ownership using a temporary root container. This command assumes the volumes use the names declared in `compose.yaml` and the updated application image uses UID and GID 1654:
+
+```powershell
+docker run --rm --user 0:0 `
+    --mount type=volume,source=library-book-images,target=/mnt/books `
+    --mount type=volume,source=library-dp-keys,target=/mnt/keys `
+    --entrypoint /bin/sh `
+    librarymanagement-api:dev `
+    -c "chown -R 1654:1654 /mnt/books /mnt/keys && chmod 700 /mnt/keys && ls -ld /mnt/books /mnt/keys"
+```
+
+Confirm that both directories are owned by `app:app` and that the key directory has permissions `700`. If the command fails, resolve the error before starting the API.
+
+Restart the application:
+
+```powershell
+docker compose up -d
+```
+
+Verify the runtime user and writable directories:
+
+```powershell
+docker compose exec library-api id
+docker compose exec library-api sh -c "test -w /app/wwwroot/uploads/books && test -w /home/app/.aspnet/DataProtection-Keys && test -w /app/logs && echo 'All directories are writable'"
+```
+
+Expected output:
+
+```text
+uid=1654(app) gid=1654(app) groups=1654(app)
+All directories are writable
+```
+
+This migration changes ownership and permissions without deleting the existing book covers or Data Protection keys. It does not modify the SQL Server volume. Do not use `docker compose down -v` to resolve a permissions issue.
+
 ## 8. Local Email Testing with Mailpit
 
 Mailpit captures SMTP messages locally without delivering them to real recipients. The API uses the following development settings from the environment template:
@@ -266,7 +334,7 @@ Mailpit captures SMTP messages locally without delivering them to real recipient
 | `EmailOptions__UseLocalSmtp` | `true` |
 | `EmailOptions__FrontendBaseUrl` | `http://localhost:4200` |
 
-The local SMTP option disables TLS and SMTP authentication only when explicitly enabled. Keep it disabled for real SMTP providers.
+The local SMTP option disables TLS and SMTP authentication only when explicitly enabled in the Development environment. Startup configuration validation rejects local SMTP outside Development. Keep it disabled for real SMTP providers.
 
 ### Email confirmation
 
@@ -324,7 +392,11 @@ Avoid `docker compose down -v` unless you intentionally want to delete Compose-m
 | Database login fails | Ensure the SQL password matches in both environment files and in the SQL Server login. |
 | Application database or tables missing | Apply the existing EF Core migrations using section 5. |
 | API is unreachable | Check `docker compose ps`, API logs and the host port binding. |
-| JWT expiration error | Verify both token lifetime settings are positive and that a valid JWT key is configured. |
+| JWT configuration or expiration error | Verify that the JWT signing key is at least 32 UTF-8 bytes long, that issuer and audience are configured, and that both token lifetimes are positive. |
+| Database connection string is missing | Configure `ConnectionStrings__DefaultConnection` for the environment in which the API starts. |
+| Application volume permission denied | For existing root-owned volumes, follow the one-time ownership migration in section 7. Do not delete the volumes or run the application as root. |
+| Liveness is healthy but readiness is unhealthy | Check the application database connection string, credentials, and SQL Server availability. |
+| Local SMTP validation fails outside Development | Set `EmailOptions__UseLocalSmtp=false` and configure an appropriate SMTP provider if email delivery is required. |
 | Book cover upload returns HTTP 400 | Select an actual file in Swagger; do not send an empty multipart file field. |
 | SMTP email does not appear | Call the correct email endpoint, verify Mailpit is running and check the API logs for SMTP errors. |
 | Confirmation link fails to open | The frontend may not be running on port 4200. Use Swagger as described in section 8. |
@@ -335,8 +407,60 @@ Avoid `docker compose down -v` unless you intentionally want to delete Compose-m
 
 The containerized development setup has been manually exercised for database migrations, registration and login, Member/Librarian authorization, category/author/book creation, book cover upload and persistence, Data Protection key persistence, Mailpit delivery, email confirmation and password reset followed by successful login with the new password.
 
+The updated non-root setup has also been checked for volume ownership migration, runtime UID and GID, writable application directories, successful startup, and both application health endpoints.
+
 These checks are not a complete regression suite. For additional API scenarios, see [TESTING.md](TESTING.md).
 
-Before a public deployment, use a separate production configuration with HTTPS, securely managed secrets, a least-privilege database account, protected Data Protection keys, real SMTP with TLS and authentication, backups, appropriate health monitoring and a deliberate migration strategy. Do not expose the development Mailpit service or reuse the test accounts. Review and pin container image versions for reproducible releases.
+### Local Production Smoke Test
+
+The default Compose configuration remains intended for Development. To check Production startup locally, build the updated API image and ensure SQL Server is running and healthy:
+
+```powershell
+docker compose build library-api
+docker compose up -d library-sqlserver
+docker compose ps
+```
+
+Run a temporary Production container on a separate loopback port:
+
+```powershell
+docker compose run -d --rm --no-deps `
+    --name library-api-production-test `
+    -p 127.0.0.1:8081:8080 `
+    -e ASPNETCORE_ENVIRONMENT=Production `
+    -e Swagger__Enabled=true `
+    -e EmailOptions__UseLocalSmtp=false `
+    library-api
+```
+
+This test reuses the local development database, environment file, and application volumes. It is not an isolated production deployment. Use it only for startup and read-only connectivity checks; do not send emails or modify stored data. Do not expose this container publicly or reuse the local credentials in a public deployment.
+
+Review startup logs:
+
+```powershell
+docker logs --tail=20 library-api-production-test
+```
+
+Check the following addresses:
+
+- Swagger UI: http://localhost:8081/swagger/index.html
+- Liveness check: http://localhost:8081/health
+- Readiness check: http://localhost:8081/health/ready
+
+The expected result is successful startup in the Production environment, an accessible Swagger UI, and two healthy health checks. Swagger is disabled in Production by default and is explicitly enabled for this test only. Local SMTP is disabled, and Serilog uses console logging instead of file logging.
+
+Stop the temporary container after testing:
+
+```powershell
+docker stop library-api-production-test
+```
+
+The `--rm` option removes the temporary container on exit; it does not delete the named volumes.
+
+A local Production smoke test has been completed. Public hosting and deployment verification are pending.
+
+### Public Deployment Considerations
+
+Before a public deployment, use a separate production configuration with HTTPS, securely managed secrets, a least-privilege database account, protected Data Protection keys, backups, appropriate health monitoring and a deliberate migration strategy. If email functionality is offered, configure real SMTP with TLS and authentication; otherwise document that email delivery is unavailable in the demo. Do not expose the development Mailpit service or reuse the test accounts. Review and pin container image versions for reproducible releases.
 
 See [SECURITY.md](SECURITY.md) and [DEPLOYMENT.md](DEPLOYMENT.md) for the project's security and release guidance.

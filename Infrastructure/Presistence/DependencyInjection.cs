@@ -6,8 +6,21 @@
             this IServiceCollection services, IConfiguration configuration)
         {
             // Add ApplicationDbContext
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+            var connectionString = configuration
+                .GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "Database connection string is missing from configuration.");
+
+            services.AddDbContext<ApplicationDbContext>(
+                options => options.UseSqlServer(connectionString));
+
+            // Database Health Check
+            services.AddHealthChecks()
+                .AddDbContextCheck<ApplicationDbContext>(
+                    name: "database",
+                    tags: ["ready"]);
 
             // Data Protection Configuration
             services.AddDataProtection();
@@ -24,11 +37,19 @@
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
-            // JWT Options
-            services.Configure<JwtOptions>(
-                configuration.GetSection("Jwt"));
 
-            //// Business Services
+            // JWT Options Validation
+            services.AddOptions<JwtOptions>()
+                .Bind(configuration.GetSection("Jwt"))
+                .Validate(
+                    options => options.AccessTokenExpirationMinutes > 0,
+                    "Access token expiration must be greater than zero.")
+                .Validate(
+                    options => options.RefreshTokenExpirationDays > 0,
+                    "Refresh token expiration must be greater than zero.")
+                .ValidateOnStart();
+
+            // Business Services
             services.AddBusinessServices();
 
             // Persistence Infrastructure

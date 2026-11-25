@@ -1,4 +1,3 @@
-
 # ==============================
 # Stage 1: Build
 # ==============================
@@ -39,10 +38,21 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-RUN mkdir -p /app/wwwroot/uploads/books
+# Prepare writable directories for the non-root user
+RUN mkdir -p /app/wwwroot/uploads/books \
+    /home/app/.aspnet/DataProtection-Keys \
+    /app/logs \
+    && chown -R app:app /app/wwwroot/uploads/books \
+    /home/app/.aspnet \
+    /app/logs \
+    && chmod 700 /home/app/.aspnet/DataProtection-Keys
 
 ENV ASPNETCORE_HTTP_PORTS=8080
+ENV HOME=/home/app
 
 EXPOSE 8080
+
+# Run the application as a non-root user
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "LibraryManagement.API.dll"]

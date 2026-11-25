@@ -3,24 +3,34 @@
     public static class CorsExtensions
     {
         public static IServiceCollection AddAngularCorsPolicy(
-                this IServiceCollection services)
+            this IServiceCollection services,
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
+            var allowedOrigins = configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>() ?? [];
+
+            if (environment.IsDevelopment() &&
+                allowedOrigins.Length == 0)
+            {
+                allowedOrigins = ["http://localhost:4200"];
+            }
+
             services.AddCors(options =>
             {
                 options.AddPolicy("AngularClient", policy =>
                 {
                     policy
-                        .WithOrigins("http://localhost:4200")
+                        .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials()
-                        .WithExposedHeaders("Retry-After"); ;
+                        .WithExposedHeaders("Retry-After");
                 });
             });
 
             return services;
         }
-
     }
 }
-    

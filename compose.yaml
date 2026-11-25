@@ -1,4 +1,4 @@
-services:
+﻿services:
 
   library-api:
     container_name: library-api-test
@@ -19,7 +19,7 @@ services:
 
     volumes:
       - library-book-images:/app/wwwroot/uploads/books
-      - library-dp-keys:/root/.aspnet/DataProtection-Keys
+      - library-dp-keys:/home/app/.aspnet/DataProtection-Keys
 
     depends_on:
       library-sqlserver:

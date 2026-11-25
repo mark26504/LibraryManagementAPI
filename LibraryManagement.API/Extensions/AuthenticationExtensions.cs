@@ -14,6 +14,10 @@
                 throw new InvalidOperationException(
                     "JWT SecretKey is missing from configuration.");
 
+            if (Encoding.UTF8.GetByteCount(secretKey) < 32)
+                throw new InvalidOperationException(
+                    "JWT SecretKey must be at least 32 bytes long.");
+
             if (string.IsNullOrWhiteSpace(issuer))
                 throw new InvalidOperationException(
                     "JWT Issuer is missing from configuration.");
@@ -57,17 +61,7 @@
                             RoleClaimType = "role"
                         };
 
-                    // Temporary JWT debugging
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnAuthenticationFailed = context =>
-                        {
-                            Console.WriteLine("JWT AUTH FAILED:");
-                            Console.WriteLine(context.Exception.ToString());
-
-                            return Task.CompletedTask;
-                        }
-                    };
+                    options.IncludeErrorDetails = false;
                 });
 
             services.AddAuthorization();
