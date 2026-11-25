@@ -140,12 +140,31 @@ Validate the Compose configuration without displaying resolved secrets:
 docker compose config --quiet
 ```
 
+### Start SQL Server
+
 Start SQL Server first and wait until it is healthy:
 
 ```powershell
 docker compose up -d library-sqlserver
 docker compose ps
 ```
+
+Ensure that the SQL Server container reports a `healthy` status before proceeding.
+
+### Restore NuGet Packages
+
+Before applying database migrations, restore the solution dependencies and verify that the solution builds successfully.
+
+```powershell
+dotnet restore LibraryManagement.slnx
+dotnet build LibraryManagement.slnx --no-restore
+```
+
+This step is required for a fresh clone because generated build files, including `obj/project.assets.json`, are not tracked by Git.
+
+Skipping the restore step may cause the `NETSDK1004` error when running EF Core migrations.
+
+### Apply EF Core Migrations
 
 Run the existing EF Core migrations from the host. The host connects through port 14333, whereas the API container connects through `library-sqlserver:1433`.
 
@@ -155,13 +174,17 @@ The following block reads the SQL password locally without printing it and uses 
 & {
     $passwordLine = Get-Content .env.sqlserver |
         Where-Object { $_ -match '^MSSQL_SA_PASSWORD=' }
+
     if (@($passwordLine).Count -ne 1) {
         throw 'Expected exactly one MSSQL_SA_PASSWORD entry.'
     }
+
     $password = ($passwordLine -split '=', 2)[1]
+
     if ([string]::IsNullOrWhiteSpace($password)) {
         throw 'SQL Server password is empty.'
     }
+
     $connection = "Server=127.0.0.1,14333;Database=LibraryManagement;User Id=sa;Password=$password;Encrypt=True;TrustServerCertificate=True"
 
     dotnet ef database update `
@@ -170,11 +193,15 @@ The following block reads the SQL password locally without printing it and uses 
         --context ApplicationDbContext `
         --connection $connection
 
-    if ($LASTEXITCODE -ne 0) { throw 'EF Core migration failed.' }
+    if ($LASTEXITCODE -ne 0) {
+        throw 'EF Core migration failed.'
+    }
 }
 ```
 
-This local-development command passes the connection string to a child process; use an appropriate secret-management and migration workflow in production. Existing migrations create the application schema and seed the predefined roles. Do not generate a new migration simply to start an existing checkout.
+This local-development command passes the connection string to a child process; use an appropriate secret-management and migration workflow in production.
+
+Existing migrations create the application schema and seed the predefined roles. Do not generate a new migration simply to start an existing checkout.
 
 See [SETUP.md](SETUP.md) for the non-Docker development workflow.
 
