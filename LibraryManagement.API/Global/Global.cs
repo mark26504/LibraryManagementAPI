@@ -13,5 +13,6 @@ global using LibraryManagement.API.Configurations;
 global using LibraryManagement.API.Middleware;
 global using System.Threading.RateLimiting;
 global using LibraryManagement.Shared.Constants;
-
-
+global using Microsoft.AspNetCore.HttpOverrides;
+global using LibraryManagement.Persistence.Email;
+global using Microsoft.AspNetCore.DataProtection;

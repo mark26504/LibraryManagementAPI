@@ -34,7 +34,7 @@ Reference rules are enforced by the project graph; `Services` carries no `Micros
 ### Option 1 — Local Development
 
 1. Prerequisites, secrets, migrations, seeding and run steps: [Docs/SETUP.md](Docs/SETUP.md).
-2. Swagger: `https://localhost:7113/swagger` · Health: `https://localhost:7113/health`.
+2. Swagger: `https://localhost:7113/swagger` · Liveness: `https://localhost:7113/health` · Readiness: `https://localhost:7113/health/ready`.
 3. Contract test suite: import the Postman collection + environment from `Docs/` and follow [Docs/TESTING.md](Docs/TESTING.md).
 
 ### Option 2 — Docker Development
@@ -50,13 +50,16 @@ The application provides a containerized local development environment with the 
 - **Multi-stage Docker build** using .NET 10 SDK and ASP.NET Core Runtime images.
 - **Docker Compose** for managing application services.
 - **SQL Server 2022** with persistent database storage.
-- **Database health checks** to ensure SQL Server is ready before starting the API.
+- **Database health checks** to ensure the SQL Server engine accepts connections before starting the API.
 - **Docker networking** for service-to-service communication.
 - **Named volumes** for persistent application data.
 - **Environment-based configuration** with secret-free configuration templates.
 - **Mailpit integration** for local email confirmation and password reset testing.
 - **Docker build caching** through separate dependency restoration and application publishing stages.
 - **Docker build context optimization** using `.dockerignore`.
+- **Non-root container execution** using a dedicated application user (`app`).
+- **Application health checks** with separate liveness and database readiness endpoints.
+- **Environment-specific logging** using Serilog.
 
 ### Docker Services
 
@@ -70,15 +73,21 @@ The application provides a containerized local development environment with the 
 
 **Mailpit Inbox:** [http://localhost:8025](http://localhost:8025)
 
+**Liveness Check:** [http://localhost:8080/health](http://localhost:8080/health)
+
+**Readiness Check:** [http://localhost:8080/health/ready](http://localhost:8080/health/ready)
+
 ### Persistent Storage
 
 | Volume | Container Path | Purpose |
 |---|---|---|
 | `library-sql-data` | `/var/opt/mssql` | SQL Server database persistence |
 | `library-book-images` | `/app/wwwroot/uploads/books` | Uploaded book cover images |
-| `library-dp-keys` | `/root/.aspnet/DataProtection-Keys` | ASP.NET Core Data Protection keys |
+| `library-dp-keys` | `/home/app/.aspnet/DataProtection-Keys` | ASP.NET Core Data Protection keys |
 
 Named volumes preserve application data across container recreation.
+
+Existing volumes created before the non-root container configuration may require a one-time ownership migration. See [Docs/DOCKER.md](Docs/DOCKER.md) for instructions.
 
 ### Environment Configuration
 
@@ -88,6 +97,7 @@ Named volumes preserve application data across container recreation.
 | `.env.sqlserver.example` | SQL Server configuration template |
 | `.env` | Local API configuration and secrets (Git ignored) |
 | `.env.sqlserver` | Local SQL Server configuration and credentials (Git ignored) |
+| `LibraryManagement.API/appsettings.Production.json` | Non-sensitive production configuration defaults |
 
 Real credentials and signing keys must never be committed to source control.
 
@@ -106,8 +116,78 @@ The following workflows have been manually verified in the containerized develop
 - Email confirmation and database verification.
 - Forgot password and password reset.
 - Successful authentication using the updated password.
+- Non-root container execution with UID 1654.
+- Writable directories for book covers, Data Protection keys, and development logs.
+- Successful migration of existing volume ownership.
+- Application liveness and database readiness health checks.
 
-> **Note:** The provided Docker Compose configuration is intended for local development and testing. Production deployment requires separate infrastructure, HTTPS, secure secret management, and production SMTP configuration.
+> **Note:** The provided Docker Compose configuration is intended for local development and testing. Public deployment requires separate infrastructure, HTTPS, secure secret management, and appropriate production configuration.
+
+## Production Readiness
+
+The API includes production-oriented configuration and security features:
+
+- **Environment-specific configuration** through `appsettings.Production.json`.
+- **Configurable Swagger** availability, disabled in Production by default.
+- **Configurable CORS** allowed origins.
+- **Forwarded headers** support with configurable trusted reverse proxy networks.
+- **JWT signing key validation** with a minimum length of 32 bytes for HMAC SHA256.
+- **JWT token lifetime validation** during application startup.
+- **Database connection string validation** using a fail-fast approach.
+- **Authentication error hygiene** with sensitive JWT error details disabled.
+- **SMTP security** preventing development-only local SMTP from being enabled in Production.
+- **Configurable Data Protection key storage** for different hosting environments.
+- **Environment-specific exception handling** without exposing internal exception details in Production.
+- **Console-based production logging** using Serilog, with file logging restricted to Development.
+- **Non-root Docker container execution** with dedicated writable directories.
+- **Separate liveness and readiness health checks** for application monitoring.
+
+### Health Check Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Application liveness |
+| GET | `/health/ready` | Database connectivity check |
+
+The liveness endpoint verifies that the application is responsive without querying the database.
+
+The readiness endpoint verifies database connectivity through an Entity Framework Core health check. It does not validate the entire database schema or verify all application dependencies.
+
+### Production Configuration
+
+Production configuration can be supplied through environment variables without storing sensitive information in source control.
+
+| Configuration Key | Purpose |
+|---|---|
+| `ASPNETCORE_ENVIRONMENT` | Application environment |
+| `Swagger__Enabled` | Controls Swagger availability in Production |
+| `ConnectionStrings__DefaultConnection` | Database connection string |
+| `Jwt__SecretKey` | JWT signing key |
+| `Jwt__Issuer` | JWT issuer |
+| `Jwt__Audience` | JWT audience |
+| `Jwt__AccessTokenExpirationMinutes` | Access token lifetime |
+| `Jwt__RefreshTokenExpirationDays` | Refresh token lifetime |
+| `Cors__AllowedOrigins__0` | Allowed frontend origin |
+| `ReverseProxy__Enabled` | Enables forwarded headers processing |
+| `ReverseProxy__KnownNetworks__0` | Trusted reverse proxy network |
+| `DataProtection__KeysPath` | Custom Data Protection key storage path |
+| `EmailOptions__UseLocalSmtp` | Development-only local SMTP mode |
+
+Production credentials must be generated separately from local development credentials.
+
+### Production Verification
+
+The application has been smoke-tested locally in the Production environment with:
+
+- Swagger explicitly enabled.
+- Development-only local SMTP disabled.
+- Production configuration and startup validation enabled.
+- Successful application startup.
+- Successful liveness and database readiness checks.
+
+Public hosting and deployment verification are pending.
+
+For production deployment requirements and security guidance, see [Docs/DEPLOYMENT.md](Docs/DEPLOYMENT.md) and [Docs/SECURITY.md](Docs/SECURITY.md).
 
 ## Documentation Index
 
