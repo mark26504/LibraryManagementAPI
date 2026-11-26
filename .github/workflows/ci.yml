@@ -91,6 +91,8 @@ jobs:
             throw "WebDeploy password is missing."
           }
 
+          $PSNativeCommandArgumentPassing = 'Legacy'
+          
           $source = (Resolve-Path ./publish).Path
 
           $destination = '-dest:contentPath="site111276",computerName="https://site111276.siteasp.net:8172/msdeploy.axd?site=site111276",userName="site111276",password="{0}",authType="Basic",includeAcls="False"' -f $env:WEBDEPLOY_PASSWORD
