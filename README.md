@@ -208,9 +208,56 @@ The public deployment was verified on November 25, 2026:
 - Application liveness and database readiness endpoints returned `Healthy`.
 - `GET /api/v1/books` smoke test completed successfully.
 
-The hosted deployment runs on IIS, while Docker Compose remains the local development and testing workflow. Hosted email delivery, full hosted regression testing, and automated CI/CD deployment have not been verified or implemented as part of this release.
+The first successful automated deployment was verified on November 26, 2026 (GitHub Actions run #5, commit `310fe57` on `master`). Both the Restore and Build and Deploy to MonsterASP.NET jobs completed successfully, including the post-deployment HTTP checks.
+
+The hosted deployment runs on IIS, while Docker Compose remains the local development and testing workflow. Hosted email delivery remains unavailable, and full hosted regression testing has not been completed.
 
 For production deployment requirements and security guidance, see [Docs/DEPLOYMENT.md](Docs/DEPLOYMENT.md) and [Docs/SECURITY.md](Docs/SECURITY.md).
+
+## CI/CD Pipeline
+
+[![CI/CD Status](https://github.com/mark26504/LibraryManagementAPI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/mark26504/LibraryManagementAPI/actions/workflows/ci.yml)
+
+The project uses GitHub Actions to automate continuous integration and deployment to MonsterASP.NET. The workflow is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### Continuous Integration (CI)
+
+- Automated dependency restoration using .NET 10.
+- Release-mode solution builds on Linux runners.
+- Build validation for configured push branches and pull requests targeting `master`.
+
+### Continuous Deployment (CD)
+
+- Automatic deployment from `master` after a successful CI build; deployment is skipped for pull requests and other branches.
+- Framework-dependent Release publishing using Windows runners.
+- Deployment through Microsoft WebDeploy, with credentials managed using GitHub Actions secrets.
+- Development configuration and local book cover uploads excluded from the published deployment files.
+- Deployment concurrency control to prevent simultaneous production deployments.
+- Temporary application shutdown during deployment and preservation of existing destination files using WebDeploy's `DoNotDeleteRule`.
+- Automated post-deployment HTTP checks for Swagger UI, application liveness, and database readiness.
+- Manual workflow execution is also supported; deployment remains restricted to `master`.
+
+### Deployment Workflow
+
+```mermaid
+flowchart LR
+    A[Push to master] --> B[Restore and Build]
+    B --> C[Publish API]
+    C --> D[Prepare production files]
+    D --> E[WebDeploy]
+    E --> F[Verify live API]
+```
+
+### Verification and Limitations
+
+- The CI workflow passed on the feature branch and pull request, with the deployment job correctly skipped.
+- The first successful end-to-end CI/CD run completed on November 26, 2026 in 2 minutes and 17 seconds (run #5).
+- Post-deployment verification checks HTTP status codes; it does not constitute a full regression test.
+- Database migrations remain manual, and automated unit tests are not currently integrated into the pipeline.
+- Production application secrets remain in the hosting environment; only deployment credentials are required by the deployment job.
+- Documentation-only pushes to `master` currently trigger the same build and deployment workflow.
+
+[View GitHub Actions Workflows](https://github.com/mark26504/LibraryManagementAPI/actions)
 
 ## Documentation Index
 
