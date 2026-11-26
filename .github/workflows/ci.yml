@@ -1,4 +1,4 @@
-name: .NET CI
+name: .NET CI/CD
 
 on:
   push:
@@ -35,3 +35,95 @@ jobs:
 
       - name: Build solution
         run: dotnet build LibraryManagement.slnx --configuration Release --no-restore
+
+  deploy:
+    name: Deploy to MonsterASP.NET
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish API
+        run: >
+          dotnet publish LibraryManagement.API/LibraryManagement.API.csproj
+          -c Release
+          -f net10.0
+          --self-contained false
+          -p:UseAppHost=false
+          -o ./publish
+
+      - name: Prepare production files
+        shell: pwsh
+        run: |
+          Remove-Item ./publish/appsettings.Development.json -ErrorAction SilentlyContinue
+          Remove-Item ./publish/wwwroot/uploads/books -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Deploy using WebDeploy
+        shell: pwsh
+        env:
+          WEBDEPLOY_PASSWORD: ${{ secrets.WEBDEPLOY_PASSWORD }}
+        run: |
+          $paths = @(
+            "${env:ProgramFiles}\IIS\Microsoft Web Deploy V3\msdeploy.exe",
+            "${env:ProgramFiles(x86)}\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          )
+
+          $msdeploy = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $msdeploy) {
+            throw "WebDeploy executable was not found."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:WEBDEPLOY_PASSWORD)) {
+            throw "WebDeploy password is missing."
+          }
+
+          $source = (Resolve-Path ./publish).Path
+
+          $destination = '-dest:contentPath="site111276",computerName="https://site111276.siteasp.net:8172/msdeploy.axd?site=site111276",userName="site111276",password="{0}",authType="Basic",includeAcls="False"' -f $env:WEBDEPLOY_PASSWORD
+
+          & $msdeploy `
+            '-verb:sync' `
+            "-source:contentPath=$source" `
+            $destination `
+            '-enableRule:AppOffline' `
+            '-enableRule:DoNotDeleteRule' `
+            '-disableLink:AppPoolExtension' `
+            '-disableLink:ContentExtension' `
+            '-disableLink:CertificateExtension'
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "WebDeploy failed."
+          }
+
+      - name: Verify live API
+        shell: pwsh
+        run: |
+          $urls = @(
+            "https://library-management-api.runasp.net/health",
+            "https://library-management-api.runasp.net/health/ready",
+            "https://library-management-api.runasp.net/swagger/index.html"
+          )
+
+          foreach ($url in $urls) {
+            $response = Invoke-WebRequest -Uri $url -TimeoutSec 60
+
+            if ($response.StatusCode -ne 200) {
+              throw "Verification failed: $url"
+            }
+
+            Write-Host "Verified: $url"
+          }
